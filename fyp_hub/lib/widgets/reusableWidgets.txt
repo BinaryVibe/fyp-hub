@@ -1,0 +1,7 @@
+Purpose: A "junk drawer" for helper files that aren't models, services, or screens.
+
+What goes here:
+
+constants.dart: A file to store your app's colors, font sizes, etc., so you can reuse them easily.
+
+validators.dart: A file to store functions that check if an email is valid or a password is strong enough.
