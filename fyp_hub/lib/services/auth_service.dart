@@ -63,6 +63,18 @@ class AuthService {
     }
   }
 
+  Future<String?> forgotPassword({required String email}) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      print(e);
+      return 'An unexpected error occurred.';
+    }
+  }
+
   // 5. Get the current user
   // This is how your 'wrapper.dart' will know if a user is logged in
   Stream<User?> get authStateChanges {

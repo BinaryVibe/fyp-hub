@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fyp_hub/screens/auth/signup_screen.dart';
+import 'package:fyp_hub/screens/auth/forgot_password_screen.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:fyp_hub/services/auth_service.dart';
 import 'package:fyp_hub/widgets/custom_button.dart';
@@ -97,14 +98,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 50),
 
                 FadeInLeft(
-                  delay: const Duration(milliseconds: 600),
-                  child: CustomTextField(
-                    controller: _emailController,
-                    hintText: 'Email',
-                  ),
-                ),
-
-                FadeInLeft(
                   delay: const Duration(milliseconds: 700),
                   child: CustomTextField(
                     controller: _passwordController,
@@ -112,6 +105,38 @@ class _LoginScreenState extends State<LoginScreen> {
                     isPassword: true,
                   ),
                 ),
+
+                const SizedBox(height: 10),
+                FadeInLeft(
+                  delay: const Duration(milliseconds: 750),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const ForgotPasswordScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 20),
 
                 if (_errorMessage != null)
