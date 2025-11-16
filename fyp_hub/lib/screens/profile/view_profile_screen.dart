@@ -109,7 +109,7 @@ class _ViewProfileScreenState extends State<ViewProfileScreen> {
             FadeInDown(
               child: const CircleAvatar(
                 radius: 50,
-                backgroundColor: Colors.gry_900,
+                backgroundColor: Colors.grey_900,
                 child: Icon(Icons.person, size: 60, color: Colors.white70),
               ),
             ),
