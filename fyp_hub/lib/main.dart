@@ -24,9 +24,11 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false, // Hides the "debug" banner
       title: 'FYP Hub',
       theme: ThemeData(
+        brightness: Brightness.dark, // Tell the app it's a dark theme
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,
-        ), // Changed seed color
+          brightness: Brightness.dark, // Use a dark color scheme
+        ),
         useMaterial3: true,
       ),
       // This is a temporary placeholder
