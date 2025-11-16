@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fyp_hub/screens/auth/signup_screen.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:fyp_hub/services/auth_service.dart';
 import 'package:fyp_hub/widgets/custom_button.dart';
@@ -26,27 +27,23 @@ class _LoginScreenState extends State<LoginScreen> {
   // Sign in function
   void _signIn() async {
     setState(() {
-      _isLoading = true; // Show loading spinner on button
-      _errorMessage = null; // Clear old errors
+      _isLoading = true;
+      _errorMessage = null;
     });
 
-    // Run the sign-in logic from your service
     final user = await _authService.signInWithEmail(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
 
-    // Check if sign-in was successful
     if (user == null) {
-      // If it failed, show an error
       setState(() {
         _errorMessage = "Login failed. Please check your email and password.";
-        _isLoading = false; // Hide loading spinner
+        _isLoading = false;
       });
     }
   }
 
-  // Don't forget to dispose controllers
   @override
   void dispose() {
     _emailController.dispose();
@@ -57,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Kept your background change
+      backgroundColor: Colors.black,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -148,7 +145,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          // We will add navigation to SignUpScreen here
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SignupScreen(),
+                            ),
+                          );
                         },
                         child: const Text(
                           'Sign Up',
