@@ -107,9 +107,9 @@ class _ViewProfileScreenState extends State<ViewProfileScreen> {
             const SizedBox(height: 30),
             // Profile Picture
             FadeInDown(
-              child: const CircleAvatar(
+              child: CircleAvatar(
                 radius: 50,
-                backgroundColor: Colors.grey_900,
+                backgroundColor: Colors.grey[900],
                 child: Icon(Icons.person, size: 60, color: Colors.white70),
               ),
             ),
@@ -146,7 +146,7 @@ class _ViewProfileScreenState extends State<ViewProfileScreen> {
                 backgroundColor: Colors.blue,
               ),
             ),
-            const Divider(color: Colors.grey_800, height: 60),
+            const Divider(color: Colors.grey, height: 60),
 
             ...roleSpecificWidgets,
           ],
