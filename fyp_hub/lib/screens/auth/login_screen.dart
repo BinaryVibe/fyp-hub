@@ -98,6 +98,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 50),
 
                 FadeInLeft(
+                  delay: const Duration(milliseconds: 600),
+                  child: CustomTextField(
+                    controller: _emailController,
+                    hintText: 'Email',
+                  ),
+                ),
+                FadeInLeft(
                   delay: const Duration(milliseconds: 700),
                   child: CustomTextField(
                     controller: _passwordController,
