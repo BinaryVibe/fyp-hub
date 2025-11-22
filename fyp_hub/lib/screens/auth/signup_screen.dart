@@ -31,6 +31,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Sign up function
   void _signUp() async {
     // 1. Check if passwords match
     if (_passwordController.text != _confirmPasswordController.text) {
@@ -62,6 +63,7 @@ class _SignupScreenState extends State<SignupScreen> {
     // 3. Auth was successful, now create profile in Firestore
     try {
       if (_selectedRole == UserRole.student) {
+        // Create a Student model
         Student newStudent = Student(
           uid: newUser.uid,
           email: newUser.email ?? '',
@@ -78,11 +80,16 @@ class _SignupScreenState extends State<SignupScreen> {
           uid: newUser.uid,
           email: newUser.email ?? '',
           name: _nameController.text.trim(),
-          interests: [], // Empty for now
-          availability: '', // Empty for now
+          interests: [],
+          availability: '',
         );
         // Save supervisor to database
         await _userService.createUserProfile(newSupervisor);
+      }
+
+      // If everything is successful, pop until back to wrapper
+      if (mounted) {
+        Navigator.popUntil(context, (route) => route.isFirst);
       }
     } catch (e) {
       // Database profile creation failed
