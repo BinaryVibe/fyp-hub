@@ -89,15 +89,53 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   // --- LOGIC ---
-
   Future<void> _saveProfile() async {
+    // 1. Reset any previous error messages
     setState(() {
-      _isLoading = true;
       _errorMessage = null;
     });
 
+    // --- VALIDATION START ---
+
+    // 2. Check if Name is empty
+    if (_nameController.text.trim().isEmpty) {
+      setState(() {
+        _errorMessage = "Please enter your full name.";
+      });
+      return; // Stop here
+    }
+
+    // 3. Check if Domain (Student) or Availability (Supervisor) is empty
+    if (_field1Controller.text.trim().isEmpty) {
+      setState(() {
+        // Show different message based on role
+        _errorMessage = widget.user is Student
+            ? "Please enter your domain."
+            : "Please enter your availability.";
+      });
+      return; // Stop here
+    }
+
+    // 4. Check if the Chip list (Skills/Interests) is empty
+    if (_chipList.isEmpty) {
+      setState(() {
+        // Show different message based on role
+        _errorMessage = widget.user is Student
+            ? "Please add at least one skill."
+            : "Please add at least one interest.";
+      });
+      return; // Stop here
+    }
+
+    // --- VALIDATION END ---
+
+    // If we passed all checks, proceed with saving
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      // 1. Create a Map of the data we want to update.
+      // Create a Map of the data we want to update.
       Map<String, dynamic> dataToUpdate;
 
       if (widget.user is Student) {
@@ -115,12 +153,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         };
       }
 
-      // 2. Send just that Map to the user service
+      // Send the data to the user service
       await _userService.updateUserProfile(widget.user.uid, dataToUpdate);
 
-      // If successful, the Wrapper will see the profile is
-      // now "complete" and will automatically navigate
-      // to the home screen.
+      // Wrapper handles navigation automatically when stream updates
     } catch (e) {
       setState(() {
         _isLoading = false;
