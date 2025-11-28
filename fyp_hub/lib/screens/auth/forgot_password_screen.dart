@@ -20,31 +20,60 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _isError = false;
 
   // Function to send the reset link
+  // Function to send the reset link
   void _sendResetLink() async {
+    final email = _emailController.text.trim();
+
+    // 1. CLEAR OLD STATUS
     setState(() {
-      _isLoading = true;
+      _isLoading = false;
       _message = null;
       _isError = false;
     });
 
-    final result = await _authService.forgotPassword(
-      email: _emailController.text.trim(),
-    );
+    // 2. CHECK FORMAT (Regex Validation)
+    // This ensures it looks like "text@text.text"
+    final emailRegex = RegExp(r"^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
+
+    if (email.isEmpty) {
+      setState(() {
+        _isError = true;
+        _message = "Please enter an email address.";
+      });
+      return;
+    }
+
+    if (!emailRegex.hasMatch(email)) {
+      setState(() {
+        _isError = true;
+        _message = "Please enter a valid email address (e.g., name@email.com).";
+      });
+      return;
+    }
+
+    // 3. START LOADING
+    setState(() {
+      _isLoading = true;
+    });
+
+    // 4. CHECK EXISTENCE & SEND (Via Firebase)
+    // Firebase checks if the user exists. If not, it returns an error string.
+    final result = await _authService.forgotPassword(email: email);
 
     if (result == null) {
-      // Success
+      // Success: User exists and email sent
       setState(() {
         _isLoading = false;
         _isError = false;
-        _message =
-            "Success! A password reset link has been sent to your email.";
+        _message = "Success! A password reset link has been sent to your email.";
       });
     } else {
-      // Failure
+      // Failure: User likely does not exist
       setState(() {
         _isLoading = false;
         _isError = true;
-        _message = result;
+        // This message comes from Firebase (e.g., "User not found")
+        _message = result; 
       });
     }
   }
