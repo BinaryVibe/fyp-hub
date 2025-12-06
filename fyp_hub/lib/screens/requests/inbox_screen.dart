@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // To get our ID
 import 'package:fyp_hub/models/request.dart';
-import 'package:fyp_hub/shared/mock_data.dart';
+import 'package:fyp_hub/services/request_service.dart'; // Your new service
 import 'package:fyp_hub/screens/requests/request_details_dialog.dart';
 
 class InboxScreen extends StatelessWidget {
@@ -8,64 +9,94 @@ class InboxScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. TOGGLE THIS TO TEST DIFFERENT ROLES
-    bool amISupervisor = false; // Try changing this to false!
+    // 1. Get the current user
+    final user = FirebaseAuth.instance.currentUser;
+    
+    // Safety check: This shouldn't happen if wrapped correctly, but good practice
+    if (user == null) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: Text("Error: Not logged in", style: TextStyle(color: Colors.white))),
+      );
+    }
 
-    // 2. FILTER THE LIST
-    final allRequests = MockData.myRequests;
-    final myFilteredRequests = allRequests.where((req) {
-      if (amISupervisor) {
-        // Supervisors only see requests meant for them (type 'supervisor')
-        return req.type == 'supervisor';
-      } else {
-        // Students only see requests meant for them (type 'teammate')
-        return req.type == 'teammate';
-      }
-    }).toList();
+    final requestService = RequestService();
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text(amISupervisor ? 'Supervisor Inbox' : 'Student Inbox'),
+        title: const Text('Inbox'),
         backgroundColor: Colors.black,
       ),
-      body: ListView.builder(
-        itemCount: myFilteredRequests.length, // Use the filtered list
-        itemBuilder: (context, index) {
-          final req = myFilteredRequests[index]; // Use the filtered list
-          
-          final isTeammate = req.type == 'teammate';
-          
-          return Card(
-            color: Colors.grey[900],
-            margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: isTeammate ? Colors.blue : Colors.purple,
-                child: Icon(
-                  isTeammate ? Icons.person : Icons.school,
-                  color: Colors.white,
+      // 2. STREAM BUILDER: Listens to the database!
+      body: StreamBuilder<List<Request>>(
+        stream: requestService.getMyInboxStream(user.uid),
+        builder: (context, snapshot) {
+          // A. Handle Loading State
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // B. Handle Error State
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+          }
+
+          // C. Handle Empty State
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox, size: 60, color: Colors.grey),
+                  SizedBox(height: 10),
+                  Text("No new requests", style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            );
+          }
+
+          // D. Handle Data (The List)
+          final requests = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: requests.length,
+            itemBuilder: (context, index) {
+              final req = requests[index];
+              final isTeammate = req.type == 'teammate';
+              
+              return Card(
+                color: Colors.grey[900],
+                margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: isTeammate ? Colors.blue : Colors.purple,
+                    child: Icon(
+                      isTeammate ? Icons.person : Icons.school,
+                      color: Colors.white,
+                    ),
+                  ),
+                  title: Text(
+                    req.senderName,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    req.message,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  trailing: _buildStatusChip(req.status),
+                  onTap: () {
+                    // Open the details dialog
+                    showDialog(
+                      context: context,
+                      builder: (context) => RequestDetailsDialog(request: req),
+                    );
+                  },
                 ),
-              ),
-              title: Text(
-                req.senderName,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                req.message,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.grey),
-              ),
-              trailing: _buildStatusChip(req.status),
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => RequestDetailsDialog(request: req),
-                );
-              },
-            ),
+              );
+            },
           );
         },
       ),
@@ -76,6 +107,7 @@ class InboxScreen extends StatelessWidget {
     Color color = Colors.grey;
     if (status == 'pending') color = Colors.orange;
     if (status == 'accepted') color = Colors.green;
+    if (status == 'declined') color = Colors.red;
     
     return Chip(
       label: Text(
