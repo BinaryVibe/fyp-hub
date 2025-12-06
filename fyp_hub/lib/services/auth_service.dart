@@ -7,8 +7,6 @@ class AuthService {
 
   // 2. Sign Up with Email & Password
   // This function will be called from your signup_screen.dart
-  // 2. Sign Up with Email & Password
-  // This function will be called from your signup_screen.dart
   Future<User?> signUpWithEmail(String email, String password) async {
     try {
       // 1. Tell Firebase to create the user
@@ -29,8 +27,6 @@ class AuthService {
     }
   }
 
-  // 3. Sign In with Email & Password
-  // This will be called from your login_screen.dart
   // 3. Sign In with Email & Password
   // This will be called from your login_screen.dart
   Future<User?> signInWithEmail(String email, String password) async {
@@ -73,6 +69,11 @@ class AuthService {
       print(e);
       return 'An unexpected error occurred.';
     }
+  }
+
+  // This allows other screens to access the currently logged-in user
+  User? get currentUser {
+    return _auth.currentUser;
   }
 
   // 5. Get the current user
