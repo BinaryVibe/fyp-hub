@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fyp_hub/services/auth_service.dart';
 import 'package:fyp_hub/screens/profile/view_profile_screen.dart';
-import 'package:fyp_hub/screens/requests/inbox_screen.dart'; 
+import 'package:fyp_hub/screens/requests/inbox_screen.dart';
+import 'package:fyp_hub/screens/marketplace/marketplace_feed.dart';
 
 class StudentHomeScreen extends StatelessWidget {
   const StudentHomeScreen({super.key});
@@ -26,7 +27,7 @@ class StudentHomeScreen extends StatelessWidget {
               );
             },
           ),
-          
+
           // Existing Profile Button
           IconButton(
             icon: const Icon(Icons.person_outline),
@@ -39,7 +40,7 @@ class StudentHomeScreen extends StatelessWidget {
               );
             },
           ),
-          
+
           // Existing Logout Button
           IconButton(
             icon: const Icon(Icons.logout),
@@ -49,7 +50,7 @@ class StudentHomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: const Center(child: Text('Home Screen (Logged In)')),
+      body: const MarketplaceFeed(),
     );
   }
 }
