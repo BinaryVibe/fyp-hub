@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fyp_hub/screens/marketplace/create_post_screen.dart';
 import '../../services/marketplace_service.dart';
 import '../../models/supervisor.dart';
 
@@ -86,7 +87,11 @@ class MarketplaceFeed extends StatelessWidget {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            // TODO: Navigate to CreatePostScreen
+            // Open the Create Post Screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CreatePostScreen()),
+            );
           },
           child: const Icon(Icons.add),
         ),
