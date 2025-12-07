@@ -21,7 +21,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
   // State Variables
   bool _isLoading = true;
-  bool _isApproved = false; // Now determined by real database data
+  bool _isApproved = false; 
   Student? _currentStudent;
 
   final _titleController = TextEditingController();
@@ -33,19 +33,17 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     _checkApprovalStatus();
   }
 
-  // 1. CHECK IF APPROVED (Real Database Check)
+  // 1. CHECK IF APPROVED
   void _checkApprovalStatus() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    // Fetch user profile
     final userProfile = await _userService.getUserProfile(uid);
     
     if (mounted) {
       setState(() {
         if (userProfile is Student) {
           _currentStudent = userProfile;
-          // You are approved ONLY IF you have a supervisorId in your profile
           _isApproved = (userProfile.supervisorId != null && userProfile.supervisorId!.isNotEmpty);
         }
         _isLoading = false;
@@ -53,20 +51,52 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     }
   }
 
-  // 2. CREATE PROJECT (Real Database Write)
+  // 2. CREATE PROJECT (With Validation!)
   void _createProject() async {
-    if (_titleController.text.isEmpty) return;
+    // --- 🛡️ VALIDATION START 🛡️ ---
+    final title = _titleController.text.trim();
+    final desc = _descController.text.trim();
+
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⚠️ Please enter a Project Title"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (title.length < 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⚠️ Title must be at least 5 characters"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (desc.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⚠️ Please enter a Description"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    // --- VALIDATION END ---
+
     if (_currentStudent == null) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // Build the Project Object
       final newProject = Project(
-        projectId: DateTime.now().millisecondsSinceEpoch.toString(), // Unique ID
-        title: _titleController.text.trim(),
-        description: _descController.text.trim(),
-        // These come from your Student Profile (set during approval)
+        projectId: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: title,
+        description: desc,
         supervisorId: _currentStudent!.supervisorId!, 
         supervisorName: _currentStudent!.supervisorName ?? 'Unknown Supervisor',
         teamLeadId: _currentStudent!.uid,
@@ -75,10 +105,8 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
         ],
       );
 
-      // Save to Firestore
       await _projectService.createProject(newProject);
 
-      // Navigate to Dashboard
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -104,7 +132,6 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(20.0),
-              // Show Form if Approved, otherwise show Lock
               child: _isApproved ? _buildForm() : _buildLockedView(),
             ),
     );
@@ -142,51 +169,93 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("✅ Supervisor Approved", style: TextStyle(color: Colors.green)),
-          const SizedBox(height: 20),
-          
-          const Text("Project Title", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          TextField(
-            controller: _titleController,
-            decoration: const InputDecoration(hintText: "Enter unique title"),
-          ),
-          const SizedBox(height: 20),
-
-          const Text("Description", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          TextField(
-            controller: _descController,
-            maxLines: 3,
-            decoration: const InputDecoration(hintText: "Describe your project..."),
-          ),
-          const SizedBox(height: 20),
-
           Container(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.grey[200],
+              color: Colors.green.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: const Row(
               children: [
-                const Text("Your Team (Auto-filled)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                const SizedBox(height: 5),
-                Text("1. ${_currentStudent?.name} (Leader)", style: const TextStyle(color: Colors.black87)),
-                Text("2. Supervisor: ${_currentStudent?.supervisorName}", style: const TextStyle(color: Colors.black87)),
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 10),
+                Text("Supervisor Approved", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
           const SizedBox(height: 30),
+          
+          const Text("Project Title", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 5),
+          TextField(
+            controller: _titleController,
+            decoration: const InputDecoration(
+              hintText: "E.g. AI Traffic Control",
+              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white10, // Dark mode friendly
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          const Text("Description", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 5),
+          TextField(
+            controller: _descController,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              hintText: "Briefly describe the goals of your project...",
+              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white10,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Team Info Card
+          Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: Colors.grey[900],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[800]!),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Initial Team", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.person, size: 16, color: Colors.grey),
+                    const SizedBox(width: 5),
+                    Text("${_currentStudent?.name} (Leader)", style: const TextStyle(color: Colors.white)),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    const Icon(Icons.school, size: 16, color: Colors.grey),
+                    const SizedBox(width: 5),
+                    Text("Supervisor: ${_currentStudent?.supervisorName}", style: const TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
 
           SizedBox(
             width: double.infinity,
+            height: 50,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               onPressed: _createProject,
-              child: const Text("CREATE PROJECT", style: TextStyle(color: Colors.white)),
+              child: const Text("CREATE PROJECT", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
