@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../services/marketplace_service.dart';
 import '../../models/marketplace_post.dart';
 import '../../models/supervisor.dart';
-import 'create_post_screen.dart';
 import '../../services/request_service.dart';
 import '../../models/request.dart';
 import '../../services/auth_service.dart';
