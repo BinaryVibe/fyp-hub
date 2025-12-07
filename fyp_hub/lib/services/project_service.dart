@@ -5,10 +5,9 @@ import 'package:fyp_hub/models/milestone.dart';
 class ProjectService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // 1. CREATE PROJECT (Student)
+  // 1. CREATE PROJECT
   Future<void> createProject(Project project) async {
     try {
-      // Use the project's ID as the document ID
       await _db.collection('projects').doc(project.projectId).set(project.toJson());
     } catch (e) {
       print("Error creating project: $e");
@@ -16,12 +15,8 @@ class ProjectService {
     }
   }
 
-  // 2. GET MY PROJECT (Student or Supervisor)
-  // This looks for a project where I am either the Lead OR the Supervisor
+  // 2. GET PROJECTS (Stream)
   Stream<List<Project>> getMyProjectsStream(String myUid) {
-    // Note: Firestore OR queries are tricky. 
-    // For simplicity, we will query where 'teamLeadId' == me. 
-    // Supervisors might need a separate query or a better data structure later.
     return _db
         .collection('projects')
         .where('teamLeadId', isEqualTo: myUid)
@@ -31,7 +26,7 @@ class ProjectService {
             .toList());
   }
   
-  // Supervisor View (Alternative Stream)
+  // 3. GET SUPERVISOR PROJECTS
   Stream<List<Project>> getSupervisorProjectsStream(String myUid) {
     return _db
         .collection('projects')
@@ -42,7 +37,7 @@ class ProjectService {
             .toList());
   }
 
-  // 3. ADD MILESTONE (Supervisor)
+  // 4. ADD MILESTONE
   Future<void> addMilestone(String projectId, Milestone milestone) async {
     try {
       await _db
@@ -57,7 +52,7 @@ class ProjectService {
     }
   }
 
-  // 4. UPDATE MILESTONE (Approve/Edit)
+  // 5. UPDATE MILESTONE
   Future<void> updateMilestone(String projectId, Milestone milestone) async {
     try {
       await _db
@@ -72,18 +67,32 @@ class ProjectService {
     }
   }
 
-  // 5. STREAM MILESTONES (Real-time List)
+  // 6. STREAM MILESTONES
   Stream<List<Milestone>> getMilestonesStream(String projectId) {
     return _db
         .collection('projects')
         .doc(projectId)
         .collection('milestones')
-        .orderBy('deadline') // Sort by date
+        .orderBy('deadline')
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
         return Milestone.fromJson(doc.id, doc.data());
       }).toList();
     });
+  }
+
+  // 7. ADD TEAMMATE (This was the missing piece!)
+  Future<void> addTeammate(String projectId, String newMemberId, String newMemberName) async {
+    try {
+      await _db.collection('projects').doc(projectId).update({
+        'teamMembers': FieldValue.arrayUnion([
+          {'uid': newMemberId, 'name': newMemberName}
+        ])
+      });
+    } catch (e) {
+      print("Error adding teammate: $e");
+      rethrow;
+    }
   }
 }
