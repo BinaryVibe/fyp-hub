@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fyp_hub/screens/marketplace/create_post_screen.dart';
 import 'package:fyp_hub/services/auth_service.dart';
 import 'package:fyp_hub/services/project_service.dart';
 import 'package:fyp_hub/services/user_service.dart';
@@ -11,137 +12,269 @@ import 'package:fyp_hub/screens/projects/create_project_screen.dart';
 import 'package:fyp_hub/screens/projects/project_dashboard.dart';
 import 'package:fyp_hub/screens/marketplace/marketplace_feed.dart';
 
-class StudentHomeScreen extends StatelessWidget {
+class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final AuthService authService = AuthService();
-    final ProjectService projectService = ProjectService();
-    final UserService userService = UserService();
-    final user = FirebaseAuth.instance.currentUser;
+  State<StudentHomeScreen> createState() => _StudentHomeScreenState();
+}
 
-    if (user == null) return const SizedBox(); // Safety check
+class _StudentHomeScreenState extends State<StudentHomeScreen>
+    with SingleTickerProviderStateMixin {
+  final AuthService authService = AuthService();
+  final ProjectService projectService = ProjectService();
+  final UserService userService = UserService();
+  final user = FirebaseAuth.instance.currentUser;
+
+  // --- SPEED DIAL STATE ---
+  bool _isMenuOpen = false;
+  late AnimationController _animationController;
+  late Animation<double> _rotateAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _rotateAnimation = Tween<double>(
+      begin: 0.0,
+      end: 0.125,
+    ).animate(_animationController);
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleMenu() {
+    if (_isMenuOpen) {
+      _animationController.reverse();
+    } else {
+      _animationController.forward();
+    }
+    setState(() {
+      _isMenuOpen = !_isMenuOpen;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (user == null) return const SizedBox();
+
+    // Access the current Theme colors to ensure consistency
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
+        title: const Text('FYP Hub'),
         actions: [
           IconButton(
             icon: const Icon(Icons.mail_outline),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const InboxScreen()),
-              );
-            },
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const InboxScreen()),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.person_outline),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ViewProfileScreen()),
-              );
-            },
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ViewProfileScreen(),
+              ),
+            ),
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authService.signOut();
-            },
+            icon: const Icon(Icons.logout, color: Colors.redAccent),
+            onPressed: () async => await authService.signOut(),
           ),
         ],
       ),
-      body: const MarketplaceFeed(),
+      body: Stack(
+        children: [
+          const MarketplaceFeed(),
 
-      // 3. SMART FAB: Checks Role FIRST, then Project status
+          // Professional Dark Overlay
+          if (_isMenuOpen)
+            GestureDetector(
+              onTap: _toggleMenu,
+              child: Container(
+                color: Colors.black.withOpacity(0.7), // Darker, sleeker overlay
+                width: double.infinity,
+                height: double.infinity,
+              ),
+            ),
+        ],
+      ),
+
+      // --- THE SPEED DIAL FAB ---
       floatingActionButton: FutureBuilder(
-        future: userService.getUserProfile(user.uid),
+        future: userService.getUserProfile(user!.uid),
         builder: (context, userSnapshot) {
-          if (!userSnapshot.hasData) return const SizedBox(); // Hide while loading
+          if (!userSnapshot.hasData) return const SizedBox();
 
           final appUser = userSnapshot.data!;
-          final isSupervisor = appUser is Supervisor; // Check Role
+          final isSupervisor = appUser is Supervisor;
 
-          // Decide which stream to listen to based on role
           final projectStream = isSupervisor
-              ? projectService.getSupervisorProjectsStream(user.uid)
-              : projectService.getMyProjectsStream(user.uid);
+              ? projectService.getSupervisorProjectsStream(user!.uid)
+              : projectService.getMyProjectsStream(user!.uid);
 
           return StreamBuilder<List<Project>>(
             stream: projectStream,
             builder: (context, projectSnapshot) {
-              // --- DEBUGGING PRINTS START ---
-              if (projectSnapshot.connectionState == ConnectionState.waiting) {
-                // print("⏳ Stream Loading..."); 
-              }
-              
-              if (projectSnapshot.hasError) {
-                // This is the important one for your Red Screen issue
-                print("🚨 STREAM ERROR: ${projectSnapshot.error}"); 
-                return const SizedBox(); 
-              }
-
-              if (!projectSnapshot.hasData || projectSnapshot.data!.isEmpty) {
-                print("⚠️ No project found for User UID: ${user.uid}"); 
-              } else {
-                print("✅ Project Found! Title: ${projectSnapshot.data!.first.title}");
-              }
-              // --- DEBUGGING PRINTS END ---
+              if (projectSnapshot.hasError) return const SizedBox();
 
               bool hasProject =
                   projectSnapshot.hasData && projectSnapshot.data!.isNotEmpty;
 
-              // --- LOGIC FOR SUPERVISORS ---
-              if (isSupervisor) {
-                if (hasProject) {
-                  return FloatingActionButton.extended(
-                    heroTag: 'sup_project_fab',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const ProjectDashboard()),
-                      );
-                    },
-                    label: const Text("View Workspace"),
-                    icon: const Icon(Icons.work),
-                    backgroundColor: Colors.purple,
-                  );
-                } else {
-                  return const SizedBox();
-                }
-              }
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // --- BUTTON 1: CREATE POST (Secondary Action) ---
+                  if (_isMenuOpen) ...[
+                    _buildSpeedDialItem(
+                      context: context,
+                      label: "Create Post",
+                      icon: Icons.edit_note,
+                      // Use Secondary color (e.g. Teal/BlueGrey) for minor actions
+                      backgroundColor: colorScheme.secondaryContainer,
+                      iconColor: colorScheme.onSecondaryContainer,
+                      onTap: () {
+                        _toggleMenu();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreatePostScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
-              // --- LOGIC FOR STUDENTS ---
-              else {
-                return FloatingActionButton.extended(
-                  heroTag: 'stu_project_fab',
-                  onPressed: () {
-                    if (hasProject) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const ProjectDashboard()),
-                      );
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const CreateProjectScreen()),
-                      );
-                    }
-                  },
-                  label: Text(hasProject ? "My Project" : "Create Project"),
-                  icon: Icon(hasProject ? Icons.dashboard : Icons.add),
-                  backgroundColor: hasProject ? Colors.green : Colors.blue,
-                );
-              }
+                  // --- BUTTON 2: PROJECT ACTION (Primary Action) ---
+                  if (_isMenuOpen) ...[
+                    _buildSpeedDialItem(
+                      context: context,
+                      label: isSupervisor
+                          ? "View Workspace"
+                          : (hasProject ? "My Workspace" : "Start Project"),
+                      icon: isSupervisor
+                          ? Icons.work_outline
+                          : (hasProject
+                                ? Icons.dashboard_customize
+                                : Icons.rocket_launch),
+                      // Use Primary color for the most important action
+                      backgroundColor: colorScheme.primaryContainer,
+                      iconColor: colorScheme.onPrimaryContainer,
+                      onTap: () {
+                        _toggleMenu();
+                        if (isSupervisor) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ProjectDashboard(),
+                            ),
+                          );
+                        } else {
+                          if (hasProject) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ProjectDashboard(),
+                              ),
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const CreateProjectScreen(),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // --- MAIN TOGGLE BUTTON ---
+                  FloatingActionButton(
+                    heroTag: 'main_fab',
+                    onPressed: _toggleMenu,
+                    // Active state uses Error/Grey to indicate "Close", Inactive uses Primary Blue
+                    backgroundColor: _isMenuOpen
+                        ? Colors.grey[800]
+                        : colorScheme.primary,
+                    foregroundColor: _isMenuOpen
+                        ? Colors.white
+                        : colorScheme.onPrimary,
+                    child: RotationTransition(
+                      turns: _rotateAnimation,
+                      child: const Icon(Icons.add, size: 28),
+                    ),
+                  ),
+                ],
+              );
             },
           );
         },
       ),
+    );
+  }
+
+  // --- HELPER: Professional Speed Dial Item ---
+  Widget _buildSpeedDialItem({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required Color backgroundColor,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Label Tag (Dark themed)
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E), // Matches your Card background
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[800]!), // Subtle border
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black45,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.white, // Crisp white text
+              fontSize: 14,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Mini FAB
+        FloatingActionButton.small(
+          heroTag: label,
+          onPressed: onTap,
+          backgroundColor: backgroundColor,
+          child: Icon(icon, color: iconColor),
+        ),
+      ],
     );
   }
 }
