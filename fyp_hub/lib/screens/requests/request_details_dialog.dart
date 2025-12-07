@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import this
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fyp_hub/models/request.dart';
-import 'package:fyp_hub/services/request_service.dart'; // Import this
-import 'package:fyp_hub/services/project_service.dart'; // Import this (for creating projects later)
+import 'package:fyp_hub/models/project.dart'; // Import Project model
+import 'package:fyp_hub/services/request_service.dart';
+import 'package:fyp_hub/services/user_service.dart';
+import 'package:fyp_hub/services/project_service.dart'; // Import Project Service
 
 class RequestDetailsDialog extends StatelessWidget {
   final Request request;
@@ -10,12 +12,14 @@ class RequestDetailsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Determine Role Dynamically (Mock logic removed)
-    // In a real app, we might check the user's profile doc, 
-    // but for now, we can infer role by the request type sent TO us.
-    // If I received a 'supervisor' request, I am acting as a supervisor.
-    final bool amISupervisor = request.type == 'supervisor';
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final bool amISupervisor = (currentUser != null &&
+        request.receiverId == currentUser.uid &&
+        request.type == 'supervisor');
+
     final requestService = RequestService();
+    final userService = UserService();
+    final projectService = ProjectService(); // Init Service
 
     return AlertDialog(
       backgroundColor: Colors.grey[900],
@@ -24,15 +28,10 @@ class RequestDetailsDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            request.message,
-            style: const TextStyle(color: Colors.white70),
-          ),
+          Text(request.message, style: const TextStyle(color: Colors.white70)),
           const SizedBox(height: 20),
-          
-          // Gate Logic: Show only if accepted & I am supervisor
           if (amISupervisor && request.status == 'accepted')
-             Container(
+            Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.blue),
@@ -47,13 +46,12 @@ class RequestDetailsDialog extends StatelessWidget {
         ],
       ),
       actions: [
-        // CLOSE BUTTON
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text("Close"),
         ),
 
-        // 2. ACCEPT / DECLINE BUTTONS (If Pending)
+        // --- PENDING STATE ---
         if (request.status == 'pending') ...[
           TextButton(
             onPressed: () async {
@@ -65,21 +63,72 @@ class RequestDetailsDialog extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             onPressed: () async {
+              // 1. Mark Request as Accepted
               await requestService.updateRequestStatus(request.requestId, 'accepted');
-              Navigator.pop(context);
+
+              // 2. IF THIS IS A TEAMMATE REQUEST, ADD THEM TO PROJECT
+              if (request.type == 'teammate' && currentUser != null) {
+                try {
+                  // A. Find my project (Where I am team lead)
+                  // Note: In a real app, we'd handle 'multiple projects' better.
+                  final myProjectsSnapshot = await projectService
+                      .getMyProjectsStream(currentUser.uid)
+                      .first;
+                  
+                  if (myProjectsSnapshot.isNotEmpty) {
+                    final myProject = myProjectsSnapshot.first;
+                    
+                    // B. Add the sender to the project
+                    await projectService.addTeammate(
+                      myProject.projectId, 
+                      request.senderId, 
+                      request.senderName
+                    );
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Teammate added to project!")),
+                      );
+                    }
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Accepted, but you have no project to add them to yet.")),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  print("Error adding teammate: $e");
+                }
+              }
+
+              if (context.mounted) Navigator.pop(context);
             },
-            child: const Text("Accept Meeting"),
+            child: const Text("Accept"), // Changed text from "Accept Meeting" to generic "Accept"
           ),
         ],
 
-        // 3. APPROVE & SUPERVISE BUTTON (The Key)
+        // --- SUPERVISOR APPROVAL ---
         if (amISupervisor && request.status == 'accepted')
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-            onPressed: () {
-               // TODO: In the next step, we will update the Student's profile here!
-               print("Simulating Approval for now...");
-               Navigator.pop(context);
+            onPressed: () async {
+              final myProfile = await userService.getUserProfile(currentUser!.uid);
+              final myName = myProfile?.name ?? "Unknown Supervisor";
+
+              await userService.updateUserProfile(request.senderId, {
+                'supervisorId': currentUser.uid,
+                'supervisorName': myName,
+              });
+
+              await requestService.updateRequestStatus(request.requestId, 'approved');
+
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Student Approved! Project Unlocked.")),
+                );
+              }
             },
             child: const Text("Approve & Supervise"),
           ),
