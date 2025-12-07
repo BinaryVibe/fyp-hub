@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fyp_hub/services/auth_service.dart';
 import 'package:fyp_hub/services/project_service.dart';
-import 'package:fyp_hub/services/user_service.dart'; // 1. Add User Service
+import 'package:fyp_hub/services/user_service.dart';
 import 'package:fyp_hub/models/project.dart';
-import 'package:fyp_hub/models/supervisor.dart'; // 2. To check role
+import 'package:fyp_hub/models/supervisor.dart';
 import 'package:fyp_hub/screens/profile/view_profile_screen.dart';
 import 'package:fyp_hub/screens/requests/inbox_screen.dart';
 import 'package:fyp_hub/screens/projects/create_project_screen.dart';
@@ -72,13 +72,30 @@ class StudentHomeScreen extends StatelessWidget {
           return StreamBuilder<List<Project>>(
             stream: projectStream,
             builder: (context, projectSnapshot) {
+              // --- DEBUGGING PRINTS START ---
+              if (projectSnapshot.connectionState == ConnectionState.waiting) {
+                // print("⏳ Stream Loading..."); 
+              }
+              
+              if (projectSnapshot.hasError) {
+                // This is the important one for your Red Screen issue
+                print("🚨 STREAM ERROR: ${projectSnapshot.error}"); 
+                return const SizedBox(); 
+              }
+
+              if (!projectSnapshot.hasData || projectSnapshot.data!.isEmpty) {
+                print("⚠️ No project found for User UID: ${user.uid}"); 
+              } else {
+                print("✅ Project Found! Title: ${projectSnapshot.data!.first.title}");
+              }
+              // --- DEBUGGING PRINTS END ---
+
               bool hasProject =
                   projectSnapshot.hasData && projectSnapshot.data!.isNotEmpty;
 
               // --- LOGIC FOR SUPERVISORS ---
               if (isSupervisor) {
                 if (hasProject) {
-                  // Supervisor has a project -> Show Dashboard Button
                   return FloatingActionButton.extended(
                     heroTag: 'sup_project_fab',
                     onPressed: () {
@@ -90,10 +107,9 @@ class StudentHomeScreen extends StatelessWidget {
                     },
                     label: const Text("View Workspace"),
                     icon: const Icon(Icons.work),
-                    backgroundColor: Colors.purple, // Purple for Supervisors
+                    backgroundColor: Colors.purple,
                   );
                 } else {
-                  // Supervisor has NO project -> Show Nothing (Wait for students)
                   return const SizedBox();
                 }
               }
