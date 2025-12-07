@@ -131,7 +131,7 @@ class RequestDetailsDialog extends StatelessWidget {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
             onPressed: () async {
               final myProfile = await userService.getUserProfile(
-                currentUser!.uid,
+                currentUser.uid,
               );
               final myName = myProfile?.name ?? "Unknown Supervisor";
 
