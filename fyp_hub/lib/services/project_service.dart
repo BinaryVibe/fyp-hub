@@ -5,21 +5,28 @@ import 'package:fyp_hub/models/milestone.dart';
 class ProjectService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // 1. CREATE PROJECT
+  // 1. CREATE PROJECT (Updated)
   Future<void> createProject(Project project) async {
     try {
-      await _db.collection('projects').doc(project.projectId).set(project.toJson());
+      // We convert the object to data...
+      final data = project.toJson();
+      
+      // ...AND we add a special "Search List" so we can find this project easily later
+      data['memberIds'] = [project.teamLeadId]; 
+
+      await _db.collection('projects').doc(project.projectId).set(data);
     } catch (e) {
       print("Error creating project: $e");
       rethrow;
     }
   }
 
-  // 2. GET PROJECTS (Stream)
+  // 2. GET MY PROJECTS (Updated Query)
   Stream<List<Project>> getMyProjectsStream(String myUid) {
     return _db
         .collection('projects')
-        .where('teamLeadId', isEqualTo: myUid)
+        // CHANGED: Now we look if your ID is anywhere in the member list!
+        .where('memberIds', arrayContains: myUid) 
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Project.fromJson(doc.id, doc.data()))
@@ -82,13 +89,16 @@ class ProjectService {
     });
   }
 
-  // 7. ADD TEAMMATE (This was the missing piece!)
+  // 7. ADD TEAMMATE (Updated)
   Future<void> addTeammate(String projectId, String newMemberId, String newMemberName) async {
     try {
       await _db.collection('projects').doc(projectId).update({
+        // Add to the display list (Name + UID)
         'teamMembers': FieldValue.arrayUnion([
           {'uid': newMemberId, 'name': newMemberName}
-        ])
+        ]),
+        // Add to the search list (UID only) - This enables the Dashboard!
+        'memberIds': FieldValue.arrayUnion([newMemberId]) 
       });
     } catch (e) {
       print("Error adding teammate: $e");
