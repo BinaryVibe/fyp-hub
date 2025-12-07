@@ -219,18 +219,17 @@ class SupervisorList extends StatelessWidget {
 
   const SupervisorList({super.key, required this.stream});
 
-  // Add this function inside the SupervisorList class (or convert it to a StatefulWidget if needed,
-  // but for a Stateless widget, we can just make this a helper method outside or pass context).
-
   void _showSupervisorDetails(BuildContext context, Supervisor supervisor) {
     final _messageController = TextEditingController();
-    final _timeController = TextEditingController(); // Simple text for now
+    final _timeController = TextEditingController();
+
+    // Initialize Services
     final AuthService _auth = AuthService();
-    // final RequestService _requestService = RequestService(); // Uncomment when you have P3's file
+    final RequestService _requestService = RequestService();
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Allows it to be tall
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF1E1E1E),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -265,7 +264,7 @@ class SupervisorList extends StatelessWidget {
                     radius: 30,
                     backgroundColor: Colors.indigoAccent.withOpacity(0.2),
                     child: Text(
-                      supervisor.name[0],
+                      supervisor.name.isNotEmpty ? supervisor.name[0] : '?',
                       style: const TextStyle(
                         fontSize: 24,
                         color: Colors.indigoAccent,
@@ -295,7 +294,7 @@ class SupervisorList extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // --- AVAILABILITY SECTION ---
+              // --- AVAILABILITY ---
               const Text(
                 "Availability",
                 style: TextStyle(
@@ -325,7 +324,6 @@ class SupervisorList extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              // Proposed Time Input
               TextField(
                 controller: _timeController,
                 style: const TextStyle(color: Colors.white),
@@ -343,7 +341,6 @@ class SupervisorList extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              // Message Input
               TextField(
                 controller: _messageController,
                 maxLines: 3,
@@ -372,34 +369,57 @@ class SupervisorList extends StatelessWidget {
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () async {
-                    // --- INTEGRATION LOGIC (PERSON 3's WORK) ---
-                    /*
-                  final currentUser = _auth.currentUser;
-                  if (currentUser != null) {
-                    await _requestService.sendRequest(
-                      senderId: currentUser.uid,
-                      senderName: currentUser.displayName ?? "Student", // Or fetch real name
-                      receiverId: supervisor.uid,
-                      type: 'supervisor',
-                      message: _messageController.text,
-                      proposedTime: _timeController.text, // You might need to parse this depending on P3's model
-                    );
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Request Sent!')),
-                    );
-                  }
-                  */
+                    final currentUser = _auth.currentUser;
 
-                    // FOR NOW (Simulation):
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Simulated: Request Sent to Person 3\'s Inbox!',
-                        ),
-                      ),
-                    );
+                    if (currentUser != null) {
+                      // 1. Combine Time into Message (Simpler than parsing Date objects)
+                      String fullMessage = _messageController.text;
+                      if (_timeController.text.isNotEmpty) {
+                        fullMessage +=
+                            "\n\nProposed Time: ${_timeController.text}";
+                      }
+
+                      // 2. Create Request Object
+                      final newRequest = Request(
+                        requestId: DateTime.now().millisecondsSinceEpoch
+                            .toString(),
+                        senderId: currentUser.uid,
+                        senderName:
+                            currentUser.displayName ??
+                            "Student", // Fallback name
+                        receiverId: supervisor
+                            .uid, // This comes from the supervisor passed to the function
+                        type: 'supervisor',
+                        status: 'pending',
+                        message: fullMessage,
+                        proposedTime:
+                            Timestamp.now(), // We use 'now' as placeholder, real time is in message
+                      );
+
+                      // 3. Send to Database
+                      try {
+                        await _requestService.sendRequest(newRequest);
+
+                        if (context.mounted) {
+                          Navigator.pop(context); // Close popup
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Request Sent Successfully!'),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        }
+                      }
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('You must be logged in')),
+                      );
+                    }
                   },
                   child: const Text(
                     "Send Meeting Request",
