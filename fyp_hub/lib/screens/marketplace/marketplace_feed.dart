@@ -41,15 +41,6 @@ class MarketplaceFeed extends StatelessWidget {
             SupervisorList(stream: marketplaceService.getAllSupervisors()),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CreatePostScreen()),
-            );
-          },
-          child: const Icon(Icons.add),
-        ),
       ),
     );
   }
@@ -229,7 +220,7 @@ class SupervisorList extends StatelessWidget {
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
+      isScrollControlled: true, // Required for full height
       backgroundColor: const Color(0xFF1E1E1E),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -242,193 +233,190 @@ class SupervisorList extends StatelessWidget {
             right: 16,
             top: 16,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- HEADER ---
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[600],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.indigoAccent.withOpacity(0.2),
-                    child: Text(
-                      supervisor.name.isNotEmpty ? supervisor.name[0] : '?',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        color: Colors.indigoAccent,
-                        fontWeight: FontWeight.bold,
-                      ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --- HEADER ---
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[600],
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        supervisor.name,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: Colors.indigoAccent.withOpacity(0.2),
+                      child: Text(
+                        supervisor.name.isNotEmpty ? supervisor.name[0] : '?',
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 24,
+                          color: Colors.indigoAccent,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
                         ),
                       ),
-                      Text(
-                        supervisor.email,
-                        style: TextStyle(color: Colors.grey[400]),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // --- AVAILABILITY ---
-              const Text(
-                "Availability",
-                style: TextStyle(
-                  color: Colors.indigoAccent,
-                  fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          supervisor.name,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          supervisor.email,
+                          style: TextStyle(color: Colors.grey[400]),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                supervisor.availability.isNotEmpty
-                    ? supervisor.availability
-                    : "Not specified",
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              // --- REQUEST FORM ---
-              const Divider(color: Colors.grey),
-              const SizedBox(height: 10),
-              const Text(
-                "Request a Meeting",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              TextField(
-                controller: _timeController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Proposed Time (e.g. Tuesday 2pm)',
-                  labelStyle: TextStyle(color: Colors.grey),
-                  border: OutlineInputBorder(),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.indigoAccent),
+                // --- AVAILABILITY ---
+                const Text(
+                  "Availability",
+                  style: TextStyle(
+                    color: Colors.indigoAccent,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
+                const SizedBox(height: 5),
+                Text(
+                  supervisor.availability.isNotEmpty
+                      ? supervisor.availability
+                      : "Not specified",
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 20),
 
-              TextField(
-                controller: _messageController,
-                maxLines: 3,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Short Message / Project Idea',
-                  labelStyle: TextStyle(color: Colors.grey),
-                  border: OutlineInputBorder(),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.indigoAccent),
+                // --- REQUEST FORM ---
+                const Divider(color: Colors.grey),
+                const SizedBox(height: 10),
+                const Text(
+                  "Request a Meeting",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 10),
 
-              // --- SEND BUTTON ---
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigoAccent,
-                    foregroundColor: Colors.white,
+                TextField(
+                  controller: _timeController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Proposed Time (e.g. Tuesday 2pm)',
+                    labelStyle: TextStyle(color: Colors.grey),
+                    border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.indigoAccent),
+                    ),
                   ),
-                  onPressed: () async {
-                    final currentUser = _auth.currentUser;
+                ),
+                const SizedBox(height: 10),
 
-                    if (currentUser != null) {
-                      // 1. Combine Time into Message (Simpler than parsing Date objects)
-                      String fullMessage = _messageController.text;
-                      if (_timeController.text.isNotEmpty) {
-                        fullMessage +=
-                            "\n\nProposed Time: ${_timeController.text}";
-                      }
+                TextField(
+                  controller: _messageController,
+                  maxLines: 3,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Short Message / Project Idea',
+                    labelStyle: TextStyle(color: Colors.grey),
+                    border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.indigoAccent),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
-                      // 2. Create Request Object
-                      final newRequest = Request(
-                        requestId: DateTime.now().millisecondsSinceEpoch
-                            .toString(),
-                        senderId: currentUser.uid,
-                        senderName:
-                            currentUser.displayName ??
-                            "Student", // Fallback name
-                        receiverId: supervisor
-                            .uid, // This comes from the supervisor passed to the function
-                        type: 'supervisor',
-                        status: 'pending',
-                        message: fullMessage,
-                        proposedTime:
-                            Timestamp.now(), // We use 'now' as placeholder, real time is in message
-                      );
+                // --- SEND BUTTON ---
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigoAccent,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () async {
+                      final currentUser = _auth.currentUser;
 
-                      // 3. Send to Database
-                      try {
-                        await _requestService.sendRequest(newRequest);
-
-                        if (context.mounted) {
-                          Navigator.pop(context); // Close popup
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Request Sent Successfully!'),
-                            ),
-                          );
+                      if (currentUser != null) {
+                        String fullMessage = _messageController.text;
+                        if (_timeController.text.isNotEmpty) {
+                          fullMessage +=
+                              "\n\nProposed Time: ${_timeController.text}";
                         }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+
+                        final newRequest = Request(
+                          requestId: DateTime.now().millisecondsSinceEpoch
+                              .toString(),
+                          senderId: currentUser.uid,
+                          senderName: currentUser.displayName ?? "Student",
+                          receiverId: supervisor.uid,
+                          type: 'supervisor',
+                          status: 'pending',
+                          message: fullMessage,
+                          proposedTime: Timestamp.now(),
+                        );
+
+                        try {
+                          await _requestService.sendRequest(newRequest);
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Request Sent Successfully!'),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
                         }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('You must be logged in'),
+                          ),
+                        );
                       }
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('You must be logged in')),
-                      );
-                    }
-                  },
-                  child: const Text(
-                    "Send Meeting Request",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    },
+                    child: const Text(
+                      "Send Meeting Request",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         );
       },
