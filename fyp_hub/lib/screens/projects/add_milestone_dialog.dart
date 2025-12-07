@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // For Timestamp
-import 'package:intl/intl.dart'; // For formatting the date text
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:fyp_hub/models/milestone.dart';
 
 class AddMilestoneDialog extends StatefulWidget {
@@ -14,39 +14,60 @@ class _AddMilestoneDialogState extends State<AddMilestoneDialog> {
   final _titleController = TextEditingController();
   DateTime? _selectedDate;
 
-  // Function to show the Date Picker
-  void _pickDate() async {
-    final now = DateTime.now();
-    final pickedDate = await showDatePicker(
+  void _presentDatePicker() {
+    showDatePicker(
       context: context,
-      initialDate: now.add(const Duration(days: 1)), // Default to tomorrow
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365)), // 1 year from now
-    );
-
-    if (pickedDate != null) {
+      initialDate: DateTime.now().add(const Duration(days: 7)), // Default next week
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.blue,
+              onPrimary: Colors.white,
+              surface: Colors.grey,
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    ).then((pickedDate) {
+      if (pickedDate == null) return;
       setState(() {
         _selectedDate = pickedDate;
       });
-    }
+    });
   }
 
-  // Function to "Submit" the form
-  void _submit() {
-    if (_titleController.text.trim().isEmpty || _selectedDate == null) {
-      return; // Validation: Do nothing if empty
+  void _submitData() {
+    final enteredTitle = _titleController.text.trim();
+
+    // 🛡️ VALIDATION
+    if (enteredTitle.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ Please enter a milestone title.')),
+      );
+      return;
+    }
+    if (_selectedDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ Please select a deadline.')),
+      );
+      return;
     }
 
-    // Create a new Milestone object
+    // Create the Milestone Object
     final newMilestone = Milestone(
-      milestoneId: DateTime.now().millisecondsSinceEpoch.toString(), // Unique ID
-      title: _titleController.text.trim(),
+      milestoneId: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: enteredTitle,
       deadline: Timestamp.fromDate(_selectedDate!),
       status: 'Pending',
     );
 
     // Return it to the Dashboard
-    Navigator.pop(context, newMilestone);
+    Navigator.of(context).pop(newMilestone);
   }
 
   @override
@@ -57,33 +78,29 @@ class _AddMilestoneDialogState extends State<AddMilestoneDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 1. TITLE INPUT
           TextField(
             controller: _titleController,
             style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
-              hintText: "e.g., Submit Chapter 1",
-              hintStyle: TextStyle(color: Colors.white54),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white54)),
+              labelText: 'Milestone Title',
+              labelStyle: TextStyle(color: Colors.white70),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
             ),
           ),
           const SizedBox(height: 20),
-
-          // 2. DATE PICKER ROW
           Row(
             children: [
-              const Icon(Icons.calendar_today, color: Colors.blue, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                _selectedDate == null
-                    ? "Select Deadline"
-                    : DateFormat('MMM dd, yyyy').format(_selectedDate!),
-                style: const TextStyle(color: Colors.white70),
+              Expanded(
+                child: Text(
+                  _selectedDate == null
+                      ? 'No Date Chosen!'
+                      : 'Deadline: ${DateFormat.yMd().format(_selectedDate!)}',
+                  style: const TextStyle(color: Colors.white70),
+                ),
               ),
-              const Spacer(),
               TextButton(
-                onPressed: _pickDate,
-                child: const Text("Pick Date"),
+                onPressed: _presentDatePicker,
+                child: const Text('Choose Date', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -91,13 +108,13 @@ class _AddMilestoneDialogState extends State<AddMilestoneDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context), // Cancel
+          onPressed: () => Navigator.of(context).pop(),
           child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
+          onPressed: _submitData,
           style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-          onPressed: _submit,
-          child: const Text("Add Task", style: TextStyle(color: Colors.white)),
+          child: const Text("Add Task"),
         ),
       ],
     );
