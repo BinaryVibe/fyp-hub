@@ -3,6 +3,10 @@ import '../../services/marketplace_service.dart';
 import '../../models/marketplace_post.dart';
 import '../../models/supervisor.dart';
 import 'create_post_screen.dart';
+import '../../services/request_service.dart';
+import '../../models/request.dart';
+import '../../services/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MarketplaceFeed extends StatelessWidget {
   const MarketplaceFeed({super.key});
@@ -215,6 +219,202 @@ class SupervisorList extends StatelessWidget {
 
   const SupervisorList({super.key, required this.stream});
 
+  // Add this function inside the SupervisorList class (or convert it to a StatefulWidget if needed,
+  // but for a Stateless widget, we can just make this a helper method outside or pass context).
+
+  void _showSupervisorDetails(BuildContext context, Supervisor supervisor) {
+    final _messageController = TextEditingController();
+    final _timeController = TextEditingController(); // Simple text for now
+    final AuthService _auth = AuthService();
+    // final RequestService _requestService = RequestService(); // Uncomment when you have P3's file
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // Allows it to be tall
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- HEADER ---
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.indigoAccent.withOpacity(0.2),
+                    child: Text(
+                      supervisor.name[0],
+                      style: const TextStyle(
+                        fontSize: 24,
+                        color: Colors.indigoAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        supervisor.name,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        supervisor.email,
+                        style: TextStyle(color: Colors.grey[400]),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // --- AVAILABILITY SECTION ---
+              const Text(
+                "Availability",
+                style: TextStyle(
+                  color: Colors.indigoAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                supervisor.availability.isNotEmpty
+                    ? supervisor.availability
+                    : "Not specified",
+                style: const TextStyle(color: Colors.white),
+              ),
+              const SizedBox(height: 20),
+
+              // --- REQUEST FORM ---
+              const Divider(color: Colors.grey),
+              const SizedBox(height: 10),
+              const Text(
+                "Request a Meeting",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Proposed Time Input
+              TextField(
+                controller: _timeController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Proposed Time (e.g. Tuesday 2pm)',
+                  labelStyle: TextStyle(color: Colors.grey),
+                  border: OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.indigoAccent),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Message Input
+              TextField(
+                controller: _messageController,
+                maxLines: 3,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Short Message / Project Idea',
+                  labelStyle: TextStyle(color: Colors.grey),
+                  border: OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.indigoAccent),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // --- SEND BUTTON ---
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigoAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    // --- INTEGRATION LOGIC (PERSON 3's WORK) ---
+                    /*
+                  final currentUser = _auth.currentUser;
+                  if (currentUser != null) {
+                    await _requestService.sendRequest(
+                      senderId: currentUser.uid,
+                      senderName: currentUser.displayName ?? "Student", // Or fetch real name
+                      receiverId: supervisor.uid,
+                      type: 'supervisor',
+                      message: _messageController.text,
+                      proposedTime: _timeController.text, // You might need to parse this depending on P3's model
+                    );
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Request Sent!')),
+                    );
+                  }
+                  */
+
+                    // FOR NOW (Simulation):
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Simulated: Request Sent to Person 3\'s Inbox!',
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    "Send Meeting Request",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Supervisor>>(
@@ -294,7 +494,7 @@ class SupervisorList extends StatelessWidget {
                 ),
                 trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                 onTap: () {
-                  // TODO: Navigate to Supervisor Details
+                  _showSupervisorDetails(context, supervisor);
                 },
               ),
             );
