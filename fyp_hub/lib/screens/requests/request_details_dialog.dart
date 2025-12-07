@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fyp_hub/models/request.dart';
-import 'package:fyp_hub/models/project.dart'; // Import Project model
 import 'package:fyp_hub/services/request_service.dart';
 import 'package:fyp_hub/services/user_service.dart';
 import 'package:fyp_hub/services/project_service.dart'; // Import Project Service
@@ -13,7 +12,8 @@ class RequestDetailsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
-    final bool amISupervisor = (currentUser != null &&
+    final bool amISupervisor =
+        (currentUser != null &&
         request.receiverId == currentUser.uid &&
         request.type == 'supervisor');
 
@@ -23,7 +23,10 @@ class RequestDetailsDialog extends StatelessWidget {
 
     return AlertDialog(
       backgroundColor: Colors.grey[900],
-      title: Text(request.senderName, style: const TextStyle(color: Colors.white)),
+      title: Text(
+        request.senderName,
+        style: const TextStyle(color: Colors.white),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,7 +58,10 @@ class RequestDetailsDialog extends StatelessWidget {
         if (request.status == 'pending') ...[
           TextButton(
             onPressed: () async {
-              await requestService.updateRequestStatus(request.requestId, 'declined');
+              await requestService.updateRequestStatus(
+                request.requestId,
+                'declined',
+              );
               Navigator.pop(context);
             },
             child: const Text("Decline", style: TextStyle(color: Colors.red)),
@@ -64,7 +70,10 @@ class RequestDetailsDialog extends StatelessWidget {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             onPressed: () async {
               // 1. Mark Request as Accepted
-              await requestService.updateRequestStatus(request.requestId, 'accepted');
+              await requestService.updateRequestStatus(
+                request.requestId,
+                'accepted',
+              );
 
               // 2. IF THIS IS A TEAMMATE REQUEST, ADD THEM TO PROJECT
               if (request.type == 'teammate' && currentUser != null) {
@@ -74,26 +83,32 @@ class RequestDetailsDialog extends StatelessWidget {
                   final myProjectsSnapshot = await projectService
                       .getMyProjectsStream(currentUser.uid)
                       .first;
-                  
+
                   if (myProjectsSnapshot.isNotEmpty) {
                     final myProject = myProjectsSnapshot.first;
-                    
+
                     // B. Add the sender to the project
                     await projectService.addTeammate(
-                      myProject.projectId, 
-                      request.senderId, 
-                      request.senderName
+                      myProject.projectId,
+                      request.senderId,
+                      request.senderName,
                     );
-                    
+
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Teammate added to project!")),
+                        const SnackBar(
+                          content: Text("Teammate added to project!"),
+                        ),
                       );
                     }
                   } else {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Accepted, but you have no project to add them to yet.")),
+                        const SnackBar(
+                          content: Text(
+                            "Accepted, but you have no project to add them to yet.",
+                          ),
+                        ),
                       );
                     }
                   }
@@ -104,7 +119,9 @@ class RequestDetailsDialog extends StatelessWidget {
 
               if (context.mounted) Navigator.pop(context);
             },
-            child: const Text("Accept"), // Changed text from "Accept Meeting" to generic "Accept"
+            child: const Text(
+              "Accept",
+            ), // Changed text from "Accept Meeting" to generic "Accept"
           ),
         ],
 
@@ -113,7 +130,9 @@ class RequestDetailsDialog extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
             onPressed: () async {
-              final myProfile = await userService.getUserProfile(currentUser!.uid);
+              final myProfile = await userService.getUserProfile(
+                currentUser!.uid,
+              );
               final myName = myProfile?.name ?? "Unknown Supervisor";
 
               await userService.updateUserProfile(request.senderId, {
@@ -121,12 +140,17 @@ class RequestDetailsDialog extends StatelessWidget {
                 'supervisorName': myName,
               });
 
-              await requestService.updateRequestStatus(request.requestId, 'approved');
+              await requestService.updateRequestStatus(
+                request.requestId,
+                'approved',
+              );
 
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Student Approved! Project Unlocked.")),
+                  const SnackBar(
+                    content: Text("Student Approved! Project Unlocked."),
+                  ),
                 );
               }
             },
