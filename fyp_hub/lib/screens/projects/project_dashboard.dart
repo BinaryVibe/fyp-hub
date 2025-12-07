@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:fyp_hub/models/project.dart';
 import 'package:fyp_hub/models/milestone.dart';
-import 'package:fyp_hub/services/project_service.dart'; // 1. Using Real Service
+import 'package:fyp_hub/services/project_service.dart';
 import 'package:fyp_hub/screens/projects/add_milestone_dialog.dart';
 import 'package:fyp_hub/screens/projects/edit_milestone_dialog.dart';
 
@@ -25,8 +25,8 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
       appBar: AppBar(
         title: const Text("Project Workspace"), 
         backgroundColor: Colors.black,
+        elevation: 0,
       ),
-      // 2. LISTEN TO LIVE DATA (Not MockData)
       body: StreamBuilder<List<Project>>(
         stream: _projectService.getMyProjectsStream(_uid),
         builder: (context, snapshot) {
@@ -40,14 +40,14 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
             return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
           }
 
-          // C. Logic: If not found as Student, try checking if I am a Supervisor
+          // C. Fallback for Supervisors
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return _buildSupervisorFallbackStream();
           }
 
-          // D. Found Project! (I am the Team Lead)
+          // D. Found Project (Student View)
           final project = snapshot.data!.first;
-          return _buildDashboardUI(project, false); // isSupervisor = false
+          return _buildDashboardUI(project, false); 
         },
       ),
     );
@@ -63,9 +63,8 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
             child: Text("No active projects found.", style: TextStyle(color: Colors.grey)),
           );
         }
-        // Supervisors see the first project found (for now)
         final project = snapshot.data!.first;
-        return _buildDashboardUI(project, true); // isSupervisor = true
+        return _buildDashboardUI(project, true);
       },
     );
   }
@@ -77,25 +76,93 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 3. REAL TITLE & DESCRIPTION
-            Text(
-              project.title, 
-              style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
+            // --- ✨ BEAUTIFUL HEADER CARD ✨ ---
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue.shade900, Colors.purple.shade900],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.2),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.rocket_launch, color: Colors.white, size: 24),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Text(
+                          project.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 15),
+                  Text(
+                    project.description,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 14,
+                      height: 1.5, // Better readability
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  // Team Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.group, color: Colors.white70, size: 14),
+                        const SizedBox(width: 5),
+                        Text(
+                          "Team Leader: ${project.teamMembers.isNotEmpty ? project.teamMembers[0]['name'] : 'Unknown'}",
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              project.description, 
-              style: const TextStyle(color: Colors.white70)
-            ),
-            const SizedBox(height: 25),
+            // ------------------------------------
+
+            const SizedBox(height: 30),
             
-            // 4. MILESTONES SECTION
+            // MILESTONES HEADER
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text("Milestones", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                
-                // Only Supervisors can see the "Add" button
                 if (isSupervisor)
                   IconButton(
                     icon: const Icon(Icons.add_task, color: Colors.blue),
@@ -105,15 +172,44 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
             ),
             const SizedBox(height: 15),
 
-            // 5. REAL MILESTONE STREAM
+            // REAL MILESTONE STREAM
             StreamBuilder<List<Milestone>>(
               stream: _projectService.getMilestonesStream(project.projectId),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const LinearProgressIndicator();
                 
                 final milestones = snapshot.data!;
+                
+                // EMPTY STATE
                 if (milestones.isEmpty) {
-                  return const Text("No milestones yet.", style: TextStyle(color: Colors.grey));
+                  return Container(
+                    padding: const EdgeInsets.all(30),
+                    margin: const EdgeInsets.only(top: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    width: double.infinity,
+                    child: Column(
+                      children: [
+                        Icon(Icons.flag_outlined, size: 50, color: Colors.blue[300]),
+                        const SizedBox(height: 15),
+                        const Text(
+                          "No Milestones Set",
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          isSupervisor 
+                              ? "Click the + button above to assign the first task."
+                              : "Waiting for your supervisor to assign tasks.",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  );
                 }
 
                 return ListView.builder(
@@ -124,6 +220,8 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                     final m = milestones[index];
                     return Card(
                       color: Colors.grey[900],
+                      margin: const EdgeInsets.only(bottom: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       child: ListTile(
                         leading: Icon(
                           m.status == 'Approved' ? Icons.check_circle : Icons.radio_button_unchecked,
@@ -133,17 +231,20 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                           m.title, 
                           style: TextStyle(
                             color: Colors.white,
-                            decoration: m.status == 'Approved' ? TextDecoration.lineThrough : null
+                            decoration: m.status == 'Approved' ? TextDecoration.lineThrough : null,
+                            fontWeight: FontWeight.bold,
                           )
                         ),
-                        subtitle: Text(
-                          "Deadline: ${DateFormat('MMM dd').format(m.deadline.toDate())}", 
-                          style: const TextStyle(color: Colors.grey)
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 5),
+                          child: Text(
+                            "Deadline: ${DateFormat('MMM dd').format(m.deadline.toDate())}", 
+                            style: TextStyle(color: Colors.blue[200], fontSize: 12)
+                          ),
                         ),
-                        // Only Supervisors can Edit/Approve
                         trailing: isSupervisor 
                           ? IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              icon: const Icon(Icons.edit, color: Colors.white70),
                               onPressed: () => _showEditMilestone(project.projectId, m),
                             )
                           : null,
@@ -158,8 +259,6 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
       ),
     );
   }
-
-  // --- LOGIC METHODS ---
 
   void _showAddMilestone(String projectId) async {
     final result = await showDialog<Milestone>(
