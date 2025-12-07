@@ -44,13 +44,25 @@ class InboxScreen extends StatelessWidget {
 
           // C. Handle Empty State
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inbox, size: 60, color: Colors.grey),
-                  SizedBox(height: 10),
-                  Text("No new requests", style: TextStyle(color: Colors.grey)),
+                  // A nice large icon
+                  Icon(Icons.mark_email_read_outlined, size: 100, color: Colors.grey[800]), 
+                  const SizedBox(height: 20),
+                  // A clear title
+                  const Text(
+                    "All Caught Up!", 
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)
+                  ),
+                  const SizedBox(height: 10),
+                  // A helpful subtitle
+                  const Text(
+                    "You have no pending requests right now.\nCheck back later!", 
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             );
