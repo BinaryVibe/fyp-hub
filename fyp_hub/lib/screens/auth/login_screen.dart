@@ -204,7 +204,6 @@
 //     );
 //   }
 // }
-
 import 'package:flutter/material.dart';
 import 'package:fyp_hub/screens/auth/signup_screen.dart';
 import 'package:fyp_hub/screens/auth/forgot_password_screen.dart';
@@ -232,6 +231,9 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // 1. ADD THIS VARIABLE TO TRACK VISIBILITY
+  bool _isObscured = true;
+
   // Sign in function
   void _signIn() async {
     setState(() {
@@ -245,10 +247,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (user == null) {
-      setState(() {
-        _errorMessage = "Login failed. Please check your email and password.";
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = "Login failed. Please check your email and password.";
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -263,14 +267,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     // Access current theme colors
     final theme = Theme.of(context);
-    final primaryColor = theme.colorScheme.primary; // Night Charcoal
-    final secondaryColor = theme.colorScheme.secondary; // Ice Blue
-    final scaffoldColor = theme.scaffoldBackgroundColor; // Snow White
-    final subtitleColor =
-        theme.textTheme.bodySmall?.color ?? Colors.grey; // Slate Grey
+    final primaryColor = theme.colorScheme.primary;
+    final subtitleColor = theme.textTheme.bodySmall?.color ?? Colors.grey;
+    final scaffoldColor = theme.scaffoldBackgroundColor;
 
     return Scaffold(
-      backgroundColor: scaffoldColor, // UI Change: Snow White
+      backgroundColor: scaffoldColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -279,13 +281,11 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 50),
 
-                // 2. WRAP YOUR WIDGETS
                 FadeInDown(
                   delay: const Duration(milliseconds: 300),
                   child: Icon(
                     Icons.shield_outlined,
                     size: 100,
-                    // UI Change: Night Charcoal
                     color: primaryColor,
                   ),
                 ),
@@ -296,7 +296,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Text(
                     'FYP Hub',
                     style: TextStyle(
-                      // UI Change: Night Charcoal
                       color: primaryColor,
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -309,7 +308,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   delay: const Duration(milliseconds: 500),
                   child: Text(
                     'Welcome Back.',
-                    // UI Change: Slate Grey
                     style: TextStyle(color: subtitleColor, fontSize: 20),
                   ),
                 ),
@@ -322,12 +320,27 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintText: 'Email',
                   ),
                 ),
+
+                // 2. UPDATE THE PASSWORD FIELD
                 FadeInLeft(
                   delay: const Duration(milliseconds: 700),
                   child: CustomTextField(
                     controller: _passwordController,
                     hintText: 'Password',
-                    isPassword: true,
+                    // Bind the obscure state here
+                    isPassword: _isObscured,
+                    // Add the Eye Icon button
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isObscured ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isObscured = !_isObscured;
+                        });
+                      },
+                    ),
                   ),
                 ),
 
@@ -352,12 +365,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Text(
                             'Forgot Password?',
                             style: TextStyle(
-                              // UI Change: Night Charcoal (High contrast link)
                               color: primaryColor,
                               fontWeight: FontWeight.bold,
-                              // Optional: Add underline decoration using Ice Blue if desired
                               decoration: TextDecoration.underline,
-                              decorationColor: secondaryColor,
+                              decorationColor: theme.colorScheme.secondary,
                             ),
                           ),
                         ),
@@ -409,11 +420,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Text(
                           'Sign Up',
                           style: TextStyle(
-                            // UI Change: Night Charcoal
                             color: primaryColor,
                             fontWeight: FontWeight.bold,
                             decoration: TextDecoration.underline,
-                            decorationColor: secondaryColor,
+                            decorationColor: theme.colorScheme.secondary,
                           ),
                         ),
                       ),

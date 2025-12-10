@@ -320,7 +320,6 @@
 //     );
 //   }
 // }
-
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:fyp_hub/models/student.dart';
@@ -354,6 +353,10 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // 1. ADD VISIBILITY VARIABLES (One for each field)
+  bool _isPasswordObscured = true;
+  bool _isConfirmPasswordObscured = true;
+
   // Sign up function
   void _signUp() async {
     // 1. Check if passwords match
@@ -376,10 +379,12 @@ class _SignupScreenState extends State<SignupScreen> {
     );
 
     if (newUser == null) {
-      setState(() {
-        _errorMessage = "Sign up failed. The email may already be in use.";
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = "Sign up failed. The email may already be in use.";
+          _isLoading = false;
+        });
+      }
       return;
     }
 
@@ -416,10 +421,12 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     } catch (e) {
       // Database profile creation failed
-      setState(() {
-        _errorMessage = "Error creating profile: $e";
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = "Error creating profile: $e";
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -549,20 +556,51 @@ class _SignupScreenState extends State<SignupScreen> {
                     hintText: 'Email',
                   ),
                 ),
+
+                // 2. UPDATED PASSWORD FIELD
                 FadeInLeft(
                   delay: const Duration(milliseconds: 900),
                   child: CustomTextField(
                     controller: _passwordController,
                     hintText: 'Password',
-                    isPassword: true,
+                    isPassword: _isPasswordObscured, // Use Variable
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordObscured
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordObscured = !_isPasswordObscured;
+                        });
+                      },
+                    ),
                   ),
                 ),
+
+                // 3. UPDATED CONFIRM PASSWORD FIELD
                 FadeInLeft(
                   delay: const Duration(milliseconds: 1000),
                   child: CustomTextField(
                     controller: _confirmPasswordController,
                     hintText: 'Confirm Password',
-                    isPassword: true,
+                    isPassword: _isConfirmPasswordObscured, // Use Variable
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isConfirmPasswordObscured
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isConfirmPasswordObscured =
+                              !_isConfirmPasswordObscured;
+                        });
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
