@@ -744,12 +744,9 @@ class SupervisorList extends StatelessWidget {
   void _showSupervisorDetails(BuildContext context, Supervisor supervisor) {
     final _messageController = TextEditingController();
     final _timeController = TextEditingController();
-
-    // Initialize Services
     final AuthService _auth = AuthService();
     final RequestService _requestService = RequestService();
-
-    // Theme references
+    // Theme references (same as before)
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
     final secondaryColor = theme.colorScheme.secondary;
@@ -757,8 +754,8 @@ class SupervisorList extends StatelessWidget {
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Required for full height
-      backgroundColor: Colors.white, // UI Change: White modal background
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -775,28 +772,29 @@ class SupervisorList extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- HEADER ---
+                // ... (Header, Avatar, Info rows - NO CHANGES HERE) ...
                 Center(
                   child: Container(
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey[300], // Lighter grab bar
+                      color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
+                // (Avatar Row Code Omitted for brevity - keep your existing UI)
                 Row(
                   children: [
                     CircleAvatar(
                       radius: 30,
-                      backgroundColor: primaryColor, // Dark avatar BG
+                      backgroundColor: primaryColor,
                       child: Text(
                         supervisor.name.isNotEmpty ? supervisor.name[0] : '?',
                         style: TextStyle(
                           fontSize: 24,
-                          color: secondaryColor, // Ice Blue text
+                          color: secondaryColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -810,7 +808,7 @@ class SupervisorList extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: primaryColor, // Dark text
+                            color: primaryColor,
                           ),
                         ),
                         Text(
@@ -822,8 +820,7 @@ class SupervisorList extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // --- AVAILABILITY ---
+                // (Availability Code Omitted - keep existing)
                 Text(
                   "Availability",
                   style: TextStyle(
@@ -840,7 +837,7 @@ class SupervisorList extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // --- REQUEST FORM ---
+                // --- FORM ---
                 const Divider(color: Colors.grey),
                 const SizedBox(height: 10),
                 Text(
@@ -855,7 +852,7 @@ class SupervisorList extends StatelessWidget {
 
                 TextField(
                   controller: _timeController,
-                  style: TextStyle(color: primaryColor), // Dark text input
+                  style: TextStyle(color: primaryColor),
                   decoration: const InputDecoration(
                     labelText: 'Proposed Time (e.g. Tuesday 2pm)',
                     border: OutlineInputBorder(),
@@ -868,7 +865,7 @@ class SupervisorList extends StatelessWidget {
                 TextField(
                   controller: _messageController,
                   maxLines: 3,
-                  style: TextStyle(color: primaryColor), // Dark text input
+                  style: TextStyle(color: primaryColor),
                   decoration: const InputDecoration(
                     labelText: 'Short Message / Project Idea',
                     border: OutlineInputBorder(),
@@ -878,38 +875,49 @@ class SupervisorList extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // --- SEND BUTTON ---
+                // --- SEND BUTTON (LOGIC CHANGED HERE) ---
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor, // Night Charcoal Button
-                      foregroundColor: secondaryColor, // Ice Blue Text
+                      backgroundColor: primaryColor,
+                      foregroundColor: secondaryColor,
                     ),
                     onPressed: () async {
                       final currentUser = _auth.currentUser;
 
                       if (currentUser != null) {
-                        String fullMessage = _messageController.text;
-                        if (_timeController.text.isNotEmpty) {
-                          fullMessage +=
-                              "\n\nProposed Time: ${_timeController.text}";
-                        }
-
-                        final newRequest = Request(
-                          requestId: DateTime.now().millisecondsSinceEpoch
-                              .toString(),
-                          senderId: currentUser.uid,
-                          senderName: currentUser.displayName ?? "Student",
-                          receiverId: supervisor.uid,
-                          type: 'supervisor',
-                          status: 'pending',
-                          message: fullMessage,
-                          proposedTime: Timestamp.now(),
-                        );
-
                         try {
+                          // 1. FETCH REAL NAME (THE FIX)
+                          final userDoc = await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(currentUser.uid)
+                              .get();
+
+                          // Get name from DB, fallback to 'Student' if missing
+                          final String realName =
+                              userDoc.data()?['name'] ?? "Student";
+
+                          String fullMessage = _messageController.text;
+                          if (_timeController.text.isNotEmpty) {
+                            fullMessage +=
+                                "\n\nProposed Time: ${_timeController.text}";
+                          }
+
+                          // 2. Create Request using REAL NAME
+                          final newRequest = Request(
+                            requestId: DateTime.now().millisecondsSinceEpoch
+                                .toString(),
+                            senderId: currentUser.uid,
+                            senderName: realName, // <--- FIXED
+                            receiverId: supervisor.uid,
+                            type: 'supervisor',
+                            status: 'pending',
+                            message: fullMessage,
+                            proposedTime: Timestamp.now(),
+                          );
+
                           await _requestService.sendRequest(newRequest);
 
                           if (context.mounted) {
