@@ -7,7 +7,10 @@ class RequestService {
   // 1. SEND A REQUEST
   Future<void> sendRequest(Request request) async {
     try {
-      await _db.collection('requests').doc(request.requestId).set(request.toJson());
+      await _db
+          .collection('requests')
+          .doc(request.requestId)
+          .set(request.toJson());
     } catch (e) {
       print("Error sending request: $e");
       rethrow;
@@ -20,9 +23,11 @@ class RequestService {
         .collection('requests')
         .where('receiverId', isEqualTo: myUid)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Request.fromJson(doc.id, doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Request.fromJson(doc.id, doc.data()))
+              .toList(),
+        );
   }
 
   // 3. UPDATE REQUEST STATUS (Accept/Decline)
@@ -35,5 +40,18 @@ class RequestService {
       print("Error updating request: $e");
       rethrow;
     }
+  }
+
+  // 4. GET MY SENT REQUESTS (Requests I sent)
+  Stream<List<Request>> getMySentRequestsStream(String myUid) {
+    return _db
+        .collection('requests')
+        .where('senderId', isEqualTo: myUid)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Request.fromJson(doc.id, doc.data()))
+              .toList(),
+        );
   }
 }
