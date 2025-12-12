@@ -215,9 +215,7 @@ class _RequestList extends StatelessWidget {
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: CircularProgressIndicator(color: secondaryColor),
-          );
+          return Center(child: CircularProgressIndicator(color: secondaryColor));
         }
         if (snapshot.hasError) {
           return Center(child: Text("Error: ${snapshot.error}"));
@@ -228,16 +226,14 @@ class _RequestList extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  isSentTab
-                      ? Icons.send_outlined
-                      : Icons.mark_email_read_outlined,
+                  isSentTab ? Icons.send_outlined : Icons.mark_email_read_outlined,
                   size: 80,
                   color: Colors.grey.withOpacity(0.5),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   isSentTab ? "No sent requests" : "Inbox Empty",
-                  style: TextStyle(color: Colors.grey, fontSize: 18),
+                  style: const TextStyle(color: Colors.grey, fontSize: 18),
                 ),
               ],
             ),
@@ -251,6 +247,7 @@ class _RequestList extends StatelessWidget {
           itemBuilder: (context, index) {
             final req = requests[index];
             final isTeammate = req.type == 'teammate';
+            final isSupervisor = req.type == 'supervisor';
 
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
@@ -272,44 +269,48 @@ class _RequestList extends StatelessWidget {
                       ? Colors.blue.withOpacity(0.1)
                       : Colors.purple.withOpacity(0.1),
                   child: Icon(
-                    // Icon logic: If sent tab, show 'upload' arrow, else 'person'
-                    isSentTab
-                        ? Icons.arrow_outward
-                        : (isTeammate ? Icons.person : Icons.school),
+                    // Icon shows who the request is related to
+                    isSupervisor ? Icons.school : Icons.person,
                     color: isTeammate ? Colors.blue : Colors.purple,
                   ),
                 ),
                 title: Text(
-                  // If I sent it, show "To: Receiver" (Ideally we'd fetch name, but for now we emphasize status)
-                  // If I received it, show "From: SenderName"
-                  isSentTab ? "Request Sent" : req.senderName,
+                  // ✅ LOGIC: 
+                  // If Sent Tab: Show "To: [Receiver Name]"
+                  // If Inbox Tab: Show "From: [Sender Name]"
+                  isSentTab ? "To: ${req.receiverName}" : req.senderName,
                   style: TextStyle(
                     color: primaryColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                subtitle: Text(
-                  req.message,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: subtitleColor),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ✅ NEW: Explicitly show the Request Type
+                    Text(
+                      isSupervisor ? "Supervisor Request" : "Teammate Request",
+                      style: TextStyle(
+                        color: isSupervisor ? Colors.purple : Colors.blue,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      req.message,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: subtitleColor),
+                    ),
+                  ],
                 ),
                 trailing: _buildStatusChip(req.status),
                 onTap: () {
-                  // SAFETY CHECK:
-                  // Only allow opening dialog if it's the INBOX (Received) tab.
-                  // Students should NOT be able to open/edit their own sent requests.
                   if (!isSentTab) {
                     showDialog(
                       context: context,
                       builder: (context) => RequestDetailsDialog(request: req),
-                    );
-                  } else {
-                    // Optional: Show simple details snackbar or read-only popup
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Status: ${req.status.toUpperCase()}"),
-                      ),
                     );
                   }
                 },
@@ -326,15 +327,12 @@ class _RequestList extends StatelessWidget {
     if (status == 'pending') color = Colors.orange;
     if (status == 'accepted') color = Colors.green;
     if (status == 'declined') color = Colors.red;
+    if (status == 'approved') color = Colors.blue;
 
     return Chip(
       label: Text(
         status.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 10,
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-        ),
+        style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
       ),
       backgroundColor: color,
       padding: EdgeInsets.zero,
