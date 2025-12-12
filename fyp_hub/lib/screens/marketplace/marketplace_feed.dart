@@ -518,12 +518,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/marketplace_service.dart';
 import '../../models/marketplace_post.dart';
 import '../../models/supervisor.dart';
-import '../../models/student.dart'; // 1. Import Student
-import '../../models/app_user.dart'; // 2. Import AppUser
+import '../../models/student.dart'; 
+import '../../models/app_user.dart'; 
 import '../../services/request_service.dart';
 import '../../models/request.dart';
 import '../../services/auth_service.dart';
-import '../../services/user_service.dart'; // 3. Import UserService
+import '../../services/user_service.dart'; 
 import '../../services/project_service.dart';
 
 class MarketplaceFeed extends StatelessWidget {
@@ -570,11 +570,13 @@ class PostList extends StatelessWidget {
 
   const PostList({super.key, required this.stream});
 
-  // --- 🆕 LOGIC: Show Profile Popup ---
+  // --- ✨ BEAUTIFUL PROFILE POPUP ✨ ---
   void _showProfilePopup(BuildContext context, String authorId, String authorName) async {
     final userService = UserService();
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary; 
     
-    // Show loading dialog first
+    // Show loading
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -582,7 +584,6 @@ class PostList extends StatelessWidget {
     );
 
     try {
-      // Fetch User Data
       final user = await userService.getUserProfile(authorId);
       
       if (context.mounted) {
@@ -593,56 +594,96 @@ class PostList extends StatelessWidget {
           return;
         }
 
-        // Show the Profile Dialog
+        // --- THE NEW DESIGN ---
         showDialog(
           context: context,
-          builder: (ctx) => AlertDialog(
+          builder: (ctx) => Dialog(
             backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            title: Row(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  child: Text(user.name[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
+                // 1. HEADER (Colored Background)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: primaryColor, // Using app's primary color
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                      Text(user.role.toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: CircleAvatar(
+                          radius: 40,
+                          backgroundColor: primaryColor,
+                          child: Text(
+                            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        user.name,
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          user.role.toUpperCase(),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+                        ),
+                      ),
                     ],
+                  ),
+                ),
+
+                // 2. CONTENT (Bold & Iconified)
+                Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    children: [
+                      if (user is Student) ...[
+                        _buildBeautifulInfoRow(Icons.category_rounded, "Domain", user.domain),
+                        const SizedBox(height: 20),
+                        _buildBeautifulInfoRow(Icons.code_rounded, "Skills", user.skills.join(", ")),
+                      ] else if (user is Supervisor) ...[
+                        _buildBeautifulInfoRow(Icons.access_time_filled_rounded, "Availability", user.availability),
+                        const SizedBox(height: 20),
+                        _buildBeautifulInfoRow(Icons.interests_rounded, "Interests", user.interests.join(", ")),
+                      ],
+                      const SizedBox(height: 20),
+                      _buildBeautifulInfoRow(Icons.email_rounded, "Email", user.email),
+                    ],
+                  ),
+                ),
+
+                // 3. FOOTER
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: TextButton.styleFrom(
+                      foregroundColor: primaryColor,
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    child: const Text("CLOSE"),
                   ),
                 ),
               ],
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Divider(),
-                  if (user is Student) ...[
-                    _buildInfoRow("Domain", user.domain),
-                    const SizedBox(height: 10),
-                    _buildInfoRow("Skills", user.skills.join(", ")),
-                  ] else if (user is Supervisor) ...[
-                    _buildInfoRow("Availability", user.availability),
-                    const SizedBox(height: 10),
-                    _buildInfoRow("Interests", user.interests.join(", ")),
-                  ],
-                  const SizedBox(height: 10),
-                  _buildInfoRow("Email", user.email),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Close"),
-              ),
-            ],
           ),
         );
       }
@@ -654,12 +695,46 @@ class PostList extends StatelessWidget {
     }
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Column(
+  // Helper for the new beautiful row
+  Widget _buildBeautifulInfoRow(IconData icon, String label, String value) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12)),
-        Text(value.isEmpty ? "Not specified" : value, style: const TextStyle(fontSize: 15)),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: Colors.blueGrey, size: 24),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value.isEmpty ? "Not specified" : value,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900, // ✨ EXTRA BOLD ✨
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -794,7 +869,7 @@ class PostList extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // --- 🆕 PROFILE AVATAR BUTTON (LEFT) ---
+                        // PROFILE AVATAR BUTTON
                         GestureDetector(
                           onTap: () => _showProfilePopup(context, post.authorId, post.authorName),
                           child: CircleAvatar(
@@ -807,7 +882,6 @@ class PostList extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        // ----------------------------------------
 
                         Expanded(
                           child: Column(
@@ -876,7 +950,6 @@ class SupervisorList extends StatelessWidget {
   const SupervisorList({super.key, required this.stream});
 
   void _showSupervisorDetails(BuildContext context, Supervisor supervisor) {
-    // ... (This function remains largely the same, logic kept from previous step)
     final _messageController = TextEditingController();
     final _timeController = TextEditingController();
     final AuthService _auth = AuthService();
@@ -936,6 +1009,25 @@ class SupervisorList extends StatelessWidget {
                     onPressed: () async {
                       final currentUser = _auth.currentUser;
                       if (currentUser != null) {
+                        
+                        // --- 🛑 CHECK: ALREADY IN PROJECT? ---
+                        final projectService = ProjectService();
+                        final myProjects = await projectService.getMyProjectsStream(currentUser.uid).first;
+
+                        if (myProjects.isNotEmpty) {
+                          if (context.mounted) {
+                            Navigator.pop(context); // Close sheet
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("⚠️ You are already in a project! You cannot request a supervisor."),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                          return;
+                        }
+                        // ------------------------------------------
+
                         try {
                           final userDoc = await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).get();
                           final String realName = userDoc.data()?['name'] ?? "Student";
@@ -954,7 +1046,10 @@ class SupervisorList extends StatelessWidget {
                             proposedTime: Timestamp.now(),
                           );
                           await _requestService.sendRequest(newRequest);
-                          if (context.mounted) Navigator.pop(context);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Meeting Request Sent! 🎓")));
+                          }
                         } catch (e) { print(e); }
                       }
                     },
@@ -991,7 +1086,7 @@ class SupervisorList extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: subtitleColor.withOpacity(0.2))),
               child: ListTile(
-                leading: CircleAvatar(backgroundColor: primaryColor, child: Text(supervisor.name[0], style: TextStyle(color: secondaryColor))),
+                leading: CircleAvatar(backgroundColor: primaryColor, child: Text(supervisor.name.isNotEmpty ? supervisor.name[0] : '?', style: TextStyle(color: secondaryColor))),
                 title: Text(supervisor.name, style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor)),
                 subtitle: Text(supervisor.interests.join(", "), maxLines: 1),
                 onTap: () => _showSupervisorDetails(context, supervisor),
