@@ -303,80 +303,160 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    // --- THEME COLORS ---
     final theme = Theme.of(context);
-    final primaryColor = theme.colorScheme.primary; // Night Charcoal
-    final secondaryColor = theme.colorScheme.secondary; // Ice Blue
-    final scaffoldColor = theme.scaffoldBackgroundColor; // Snow White
+    final secondaryColor = theme.colorScheme.secondary;
 
     return Scaffold(
-      backgroundColor: scaffoldColor, 
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(
-          "Project Workspace",
-          style: TextStyle(
-            color: primaryColor, // Dark text
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent, 
+        title: const Text("Project Workspace", style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
-        iconTheme: IconThemeData(color: primaryColor), 
+        backgroundColor: Colors.transparent,
+        foregroundColor: theme.colorScheme.primary,
       ),
       body: StreamBuilder<List<Project>>(
         stream: _projectService.getMyProjectsStream(_uid),
         builder: (context, snapshot) {
-          // A. Loading State
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(color: secondaryColor),
-            );
+            return Center(child: CircularProgressIndicator(color: secondaryColor));
           }
-
-          // B. Error State
           if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                "Error: ${snapshot.error}",
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
-            );
+            return Center(child: Text("Error: ${snapshot.error}"));
           }
 
-          // C. Fallback for Supervisors
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return _buildSupervisorFallbackStream();
+          // 1. If I am a Student (Team Lead/Member) -> Show My Single Project
+          if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+            final project = snapshot.data!.first;
+            return ProjectDetailView(project: project, isSupervisor: false);
           }
 
-          // D. Found Project (Student View)
-          final project = snapshot.data!.first;
-          return _buildDashboardUI(project, false);
+          // 2. If I am NOT a student, check if I am a Supervisor
+          return _buildSupervisorView();
         },
       ),
     );
   }
 
-  // Helper: Supervisor View Logic
-  Widget _buildSupervisorFallbackStream() {
+  Widget _buildSupervisorView() {
     return StreamBuilder<List<Project>>(
       stream: _projectService.getSupervisorProjectsStream(_uid),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        final projects = snapshot.data ?? [];
+
+        if (projects.isEmpty) {
           return const Center(
-            child: Text(
-              "No active projects found.",
-              style: TextStyle(color: Colors.grey),
-            ),
+            child: Text("No active projects found.", style: TextStyle(color: Colors.grey)),
           );
         }
-        final project = snapshot.data!.first;
-        return _buildDashboardUI(project, true);
+
+        // --- SUPERVISOR: SHOW LIST OF PROJECTS ---
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: projects.length,
+          itemBuilder: (context, index) {
+            final project = projects[index];
+            return Card(
+              elevation: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  // Navigate to Detail View for THIS project
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Scaffold(
+                        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                        // ✅ FIX: Use generic title to avoid duplication with the Header Card
+                        appBar: AppBar(
+                          title: const Text("Project Workspace", style: TextStyle(fontWeight: FontWeight.bold)),
+                          elevation: 0,
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Theme.of(context).colorScheme.primary,
+                        ),
+                        body: ProjectDetailView(project: project, isSupervisor: true),
+                      ),
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.folder_shared, color: Colors.purple, size: 28),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              project.title,
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              project.description,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                            const SizedBox(height: 8),
+                            // Team Lead Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                "Lead: ${project.teamMembers.isNotEmpty ? project.teamMembers[0]['name'] : 'Unknown'}",
+                                style: const TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
       },
     );
   }
+}
 
-  Widget _buildDashboardUI(Project project, bool isSupervisor) {
-    // Theme colors
+// --- REUSABLE DETAIL VIEW (The "Rocket" Dashboard) ---
+class ProjectDetailView extends StatefulWidget {
+  final Project project;
+  final bool isSupervisor;
+
+  const ProjectDetailView({super.key, required this.project, required this.isSupervisor});
+
+  @override
+  State<ProjectDetailView> createState() => _ProjectDetailViewState();
+}
+
+class _ProjectDetailViewState extends State<ProjectDetailView> {
+  final _projectService = ProjectService();
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
     final secondaryColor = theme.colorScheme.secondary;
@@ -394,20 +474,13 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    primaryColor,
-                    const Color(0xFF2C3E50), 
-                  ],
+                  colors: [primaryColor, const Color(0xFF2C3E50)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
+                  BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8)),
                 ],
               ),
               child: Column(
@@ -417,65 +490,35 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.rocket_launch,
-                          color: secondaryColor,
-                          size: 24,
-                        ),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
+                        child: Icon(Icons.rocket_launch, color: secondaryColor, size: 24),
                       ),
                       const SizedBox(width: 15),
                       Expanded(
                         child: Text(
-                          project.title,
-                          style: const TextStyle(
-                            color: Colors.white, 
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
+                          widget.project.title,
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 15),
                   Text(
-                    project.description,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
+                    widget.project.description,
+                    style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14, height: 1.5),
                   ),
                   const SizedBox(height: 15),
-                  // Team Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), borderRadius: BorderRadius.circular(8)),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.group,
-                          color: Colors.white70,
-                          size: 14,
-                        ),
+                        const Icon(Icons.group, color: Colors.white70, size: 14),
                         const SizedBox(width: 5),
                         Text(
-                          "Team Leader: ${project.teamMembers.isNotEmpty ? project.teamMembers[0]['name'] : 'Unknown'}",
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
+                          "Team: ${widget.project.teamMembers.map((m) => m['name']).join(', ')}",
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ],
                     ),
@@ -490,77 +533,25 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  "Milestones",
-                  style: TextStyle(
-                    color: primaryColor, 
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (isSupervisor)
+                Text("Milestones", style: TextStyle(color: primaryColor, fontSize: 20, fontWeight: FontWeight.bold)),
+                if (widget.isSupervisor)
                   IconButton(
                     icon: Icon(Icons.add_task, color: secondaryColor),
-                    onPressed: () => _showAddMilestone(project.projectId),
+                    onPressed: () => _showAddMilestone(context, widget.project.projectId),
                   ),
               ],
             ),
             const SizedBox(height: 15),
 
-            // REAL MILESTONE STREAM
+            // STREAM MILESTONES
             StreamBuilder<List<Milestone>>(
-              stream: _projectService.getMilestonesStream(project.projectId),
+              stream: _projectService.getMilestonesStream(widget.project.projectId),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
-                  return LinearProgressIndicator(color: secondaryColor);
-
+                if (!snapshot.hasData) return LinearProgressIndicator(color: secondaryColor);
                 final milestones = snapshot.data!;
 
-                // EMPTY STATE
                 if (milestones.isEmpty) {
-                  return Container(
-                    padding: const EdgeInsets.all(30),
-                    margin: const EdgeInsets.only(top: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.white, 
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: subtitleColor.withOpacity(0.2)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    width: double.infinity,
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.flag_outlined,
-                          size: 50,
-                          color: subtitleColor,
-                        ),
-                        const SizedBox(height: 15),
-                        Text(
-                          "No Milestones Set",
-                          style: TextStyle(
-                            color: primaryColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          isSupervisor
-                              ? "Click the + button above to assign the first task."
-                              : "Waiting for your supervisor to assign tasks.",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: subtitleColor, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  );
+                  return _buildEmptyState(widget.isSupervisor, subtitleColor, primaryColor);
                 }
 
                 return ListView.builder(
@@ -569,83 +560,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                   itemCount: milestones.length,
                   itemBuilder: (context, index) {
                     final m = milestones[index];
-                    
-                    // --- 🎨 STATUS LOGIC ---
-                    IconData icon;
-                    Color color;
-                    
-                    if (m.status == 'Approved') {
-                      icon = Icons.check_circle;
-                      color = Colors.green;
-                    } else if (m.status == 'In Progress') {
-                      icon = Icons.hourglass_bottom_rounded; // Or pending_actions
-                      color = Colors.orange; // Distinct "Working" color
-                    } else {
-                      // Pending
-                      icon = Icons.radio_button_unchecked;
-                      color = Colors.grey; 
-                    }
-                    // -----------------------
-
-                    return Card(
-                      color: Colors.white,
-                      margin: const EdgeInsets.only(bottom: 10),
-                      elevation: 2,
-                      shadowColor: Colors.black.withOpacity(0.1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: subtitleColor.withOpacity(0.1)),
-                      ),
-                      child: ListTile(
-                        leading: Icon(
-                          icon,
-                          color: color,
-                          size: 28,
-                        ),
-                        title: Text(
-                          m.title,
-                          style: TextStyle(
-                            color: primaryColor, 
-                            // Only strike through if Approved
-                            decoration: m.status == 'Approved'
-                                ? TextDecoration.lineThrough
-                                : null,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 5),
-                          child: Row(
-                            children: [
-                              Text(
-                                "Deadline: ${DateFormat('MMM dd').format(m.deadline.toDate())}",
-                                style: TextStyle(
-                                  color: subtitleColor, 
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const Spacer(),
-                              // Show text status for clarity
-                              Text(
-                                m.status,
-                                style: TextStyle(
-                                  color: color,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        trailing: isSupervisor
-                            ? IconButton(
-                                icon: Icon(Icons.edit, color: subtitleColor),
-                                onPressed: () =>
-                                    _showEditMilestone(project.projectId, m),
-                              )
-                            : null,
-                      ),
-                    );
+                    return _buildMilestoneCard(context, m, widget.project.projectId, widget.isSupervisor, primaryColor, subtitleColor);
                   },
                 );
               },
@@ -656,21 +571,91 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
     );
   }
 
-  void _showAddMilestone(String projectId) async {
-    final result = await showDialog<Milestone>(
-      context: context,
-      builder: (ctx) => const AddMilestoneDialog(),
+  Widget _buildEmptyState(bool isSupervisor, Color subtitleColor, Color primaryColor) {
+    return Container(
+      padding: const EdgeInsets.all(30),
+      margin: const EdgeInsets.only(top: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: subtitleColor.withOpacity(0.2)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      width: double.infinity,
+      child: Column(
+        children: [
+          Icon(Icons.flag_outlined, size: 50, color: subtitleColor),
+          const SizedBox(height: 15),
+          Text("No Milestones Set", style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 8),
+          Text(
+            isSupervisor ? "Click the + button above to assign the first task." : "Waiting for your supervisor to assign tasks.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: subtitleColor, fontSize: 14),
+          ),
+        ],
+      ),
     );
+  }
+
+  Widget _buildMilestoneCard(BuildContext context, Milestone m, String projectId, bool isSupervisor, Color primaryColor, Color subtitleColor) {
+    IconData icon;
+    Color color;
+    if (m.status == 'Approved') {
+      icon = Icons.check_circle;
+      color = Colors.green;
+    } else if (m.status == 'In Progress') {
+      icon = Icons.hourglass_bottom_rounded;
+      color = Colors.orange;
+    } else {
+      icon = Icons.radio_button_unchecked;
+      color = Colors.grey;
+    }
+
+    return Card(
+      color: Colors.white,
+      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: subtitleColor.withOpacity(0.1))),
+      child: ListTile(
+        leading: Icon(icon, color: color, size: 28),
+        title: Text(
+          m.title,
+          style: TextStyle(
+            color: primaryColor,
+            decoration: m.status == 'Approved' ? TextDecoration.lineThrough : null,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Row(
+            children: [
+              Text("Deadline: ${DateFormat('MMM dd').format(m.deadline.toDate())}", style: TextStyle(color: subtitleColor, fontSize: 12)),
+              const Spacer(),
+              Text(m.status, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        trailing: isSupervisor
+            ? IconButton(
+                icon: Icon(Icons.edit, color: subtitleColor),
+                onPressed: () => _showEditMilestone(context, projectId, m),
+              )
+            : null,
+      ),
+    );
+  }
+
+  void _showAddMilestone(BuildContext context, String projectId) async {
+    final result = await showDialog<Milestone>(context: context, builder: (ctx) => const AddMilestoneDialog());
     if (result != null) {
       await _projectService.addMilestone(projectId, result);
     }
   }
 
-  void _showEditMilestone(String projectId, Milestone m) async {
-    final result = await showDialog<Milestone>(
-      context: context,
-      builder: (ctx) => EditMilestoneDialog(milestone: m),
-    );
+  void _showEditMilestone(BuildContext context, String projectId, Milestone m) async {
+    final result = await showDialog<Milestone>(context: context, builder: (ctx) => EditMilestoneDialog(milestone: m));
     if (result != null) {
       await _projectService.updateMilestone(projectId, result);
     }
