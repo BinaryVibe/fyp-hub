@@ -907,16 +907,19 @@ class SupervisorList extends StatelessWidget {
 
                           // 2. Create Request using REAL NAME
                           final newRequest = Request(
-                            requestId: DateTime.now().millisecondsSinceEpoch
-                                .toString(),
-                            senderId: currentUser.uid,
-                            senderName: realName, // <--- FIXED
-                            receiverId: supervisor.uid,
-                            type: 'supervisor',
-                            status: 'pending',
-                            message: fullMessage,
-                            proposedTime: Timestamp.now(),
-                          );
+                          requestId: DateTime.now().millisecondsSinceEpoch.toString(),
+                          senderId: currentUser.uid,
+                          senderName: realName, 
+                          receiverId: supervisor.uid,
+                          
+                          // ✅ THIS IS THE KEY: Save the supervisor's name now!
+                          receiverName: supervisor.name, 
+                          
+                          type: 'supervisor',
+                          status: 'pending',
+                          message: fullMessage,
+                          proposedTime: Timestamp.now(),
+                        );
 
                           await _requestService.sendRequest(newRequest);
 
