@@ -230,8 +230,6 @@ class _LoginScreenState extends State<LoginScreen> {
   // State variables
   bool _isLoading = false;
   String? _errorMessage;
-
-  // 1. ADD THIS VARIABLE TO TRACK VISIBILITY
   bool _isObscured = true;
 
   // Sign in function
@@ -265,7 +263,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Access current theme colors
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
     final subtitleColor = theme.textTheme.bodySmall?.color ?? Colors.grey;
@@ -281,34 +278,51 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 50),
 
+                // --- 🔥 NEW HEADER WITH LOGO 🔥 ---
                 FadeInDown(
                   delay: const Duration(milliseconds: 300),
-                  child: Icon(
-                    Icons.shield_outlined,
-                    size: 100,
-                    color: primaryColor,
+                  child: Hero(
+                    tag: 'app-logo', 
+                    child: Image.asset(
+                      'assets/images/logo.png', // Ensure this file exists!
+                      height: 120, // Adjust size as needed
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 FadeInDown(
                   delay: const Duration(milliseconds: 400),
                   child: Text(
-                    'FYP Hub',
+                    "FYP Hub",
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: primaryColor,
                       fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w900, // Extra Bold
+                      color: primaryColor,
+                      letterSpacing: 1.5, // Spacing out letters looks premium
+                      shadows: [
+                        Shadow(
+                          blurRadius: 2.0,
+                          color: Colors.black.withOpacity(0.1),
+                          offset: const Offset(1.0, 1.0),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
-
+                
+                const SizedBox(height: 8),
                 FadeInDown(
                   delay: const Duration(milliseconds: 500),
                   child: Text(
                     'Welcome Back.',
-                    style: TextStyle(color: subtitleColor, fontSize: 20),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: subtitleColor,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 50),
@@ -321,15 +335,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                // 2. UPDATE THE PASSWORD FIELD
+                const SizedBox(height: 10),
+
                 FadeInLeft(
                   delay: const Duration(milliseconds: 700),
                   child: CustomTextField(
                     controller: _passwordController,
                     hintText: 'Password',
-                    // Bind the obscure state here
                     isPassword: _isObscured,
-                    // Add the Eye Icon button
                     suffixIcon: IconButton(
                       icon: Icon(
                         _isObscured ? Icons.visibility_off : Icons.visibility,
