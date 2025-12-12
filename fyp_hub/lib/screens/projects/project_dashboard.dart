@@ -310,18 +310,18 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
     final scaffoldColor = theme.scaffoldBackgroundColor; // Snow White
 
     return Scaffold(
-      backgroundColor: scaffoldColor, // UI Change: Snow White
+      backgroundColor: scaffoldColor, 
       appBar: AppBar(
         title: Text(
           "Project Workspace",
           style: TextStyle(
-            color: primaryColor, // UI Change: Dark text
+            color: primaryColor, // Dark text
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.transparent, // Cleaner look
+        backgroundColor: Colors.transparent, 
         elevation: 0,
-        iconTheme: IconThemeData(color: primaryColor), // Dark back arrow
+        iconTheme: IconThemeData(color: primaryColor), 
       ),
       body: StreamBuilder<List<Project>>(
         stream: _projectService.getMyProjectsStream(_uid),
@@ -388,16 +388,15 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- ✨ BEAUTIFUL HEADER CARD ✨ ---
+            // --- HEADER CARD ---
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                // UI Change: Professional Charcoal Gradient
                 gradient: LinearGradient(
                   colors: [
                     primaryColor,
-                    const Color(0xFF2C3E50), // Slightly lighter charcoal
+                    const Color(0xFF2C3E50), 
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -422,7 +421,6 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                           color: Colors.white.withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        // UI Change: Ice Blue Icon
                         child: Icon(
                           Icons.rocket_launch,
                           color: secondaryColor,
@@ -434,7 +432,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                         child: Text(
                           project.title,
                           style: const TextStyle(
-                            color: Colors.white, // Keep white on dark card
+                            color: Colors.white, 
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
@@ -486,7 +484,6 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
               ),
             ),
 
-            // ------------------------------------
             const SizedBox(height: 30),
 
             // MILESTONES HEADER
@@ -496,14 +493,13 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                 Text(
                   "Milestones",
                   style: TextStyle(
-                    color: primaryColor, // UI Change: Dark text
+                    color: primaryColor, 
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 if (isSupervisor)
                   IconButton(
-                    // UI Change: Ice Blue Icon
                     icon: Icon(Icons.add_task, color: secondaryColor),
                     onPressed: () => _showAddMilestone(project.projectId),
                   ),
@@ -526,7 +522,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                     padding: const EdgeInsets.all(30),
                     margin: const EdgeInsets.only(top: 20),
                     decoration: BoxDecoration(
-                      color: Colors.white, // UI Change: White card
+                      color: Colors.white, 
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: subtitleColor.withOpacity(0.2)),
                       boxShadow: [
@@ -573,8 +569,25 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                   itemCount: milestones.length,
                   itemBuilder: (context, index) {
                     final m = milestones[index];
+                    
+                    // --- 🎨 STATUS LOGIC ---
+                    IconData icon;
+                    Color color;
+                    
+                    if (m.status == 'Approved') {
+                      icon = Icons.check_circle;
+                      color = Colors.green;
+                    } else if (m.status == 'In Progress') {
+                      icon = Icons.hourglass_bottom_rounded; // Or pending_actions
+                      color = Colors.orange; // Distinct "Working" color
+                    } else {
+                      // Pending
+                      icon = Icons.radio_button_unchecked;
+                      color = Colors.grey; 
+                    }
+                    // -----------------------
+
                     return Card(
-                      // UI Change: White card background
                       color: Colors.white,
                       margin: const EdgeInsets.only(bottom: 10),
                       elevation: 2,
@@ -585,18 +598,15 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                       ),
                       child: ListTile(
                         leading: Icon(
-                          m.status == 'Approved'
-                              ? Icons.check_circle
-                              : Icons.radio_button_unchecked,
-                          // UI Change: Green for done, Slate Grey for pending
-                          color: m.status == 'Approved'
-                              ? Colors.green
-                              : subtitleColor,
+                          icon,
+                          color: color,
+                          size: 28,
                         ),
                         title: Text(
                           m.title,
                           style: TextStyle(
-                            color: primaryColor, // UI Change: Dark text
+                            color: primaryColor, 
+                            // Only strike through if Approved
                             decoration: m.status == 'Approved'
                                 ? TextDecoration.lineThrough
                                 : null,
@@ -605,12 +615,26 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                         ),
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 5),
-                          child: Text(
-                            "Deadline: ${DateFormat('MMM dd').format(m.deadline.toDate())}",
-                            style: TextStyle(
-                              color: subtitleColor, // UI Change: Slate Grey
-                              fontSize: 12,
-                            ),
+                          child: Row(
+                            children: [
+                              Text(
+                                "Deadline: ${DateFormat('MMM dd').format(m.deadline.toDate())}",
+                                style: TextStyle(
+                                  color: subtitleColor, 
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const Spacer(),
+                              // Show text status for clarity
+                              Text(
+                                m.status,
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         trailing: isSupervisor
