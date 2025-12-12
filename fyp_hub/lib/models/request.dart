@@ -5,33 +5,35 @@ class Request {
   final String senderId;
   final String senderName;
   final String receiverId;
-  final String type; // 'teammate' or 'supervisor'
-  final String status; // 'pending', 'accepted', 'declined', 'approved'
+  final String receiverName; // 1. Add this
+  final String type; 
+  final String status; 
   final String message;
   final Timestamp? proposedTime;
 
-  // --- CONSTRUCTOR ---
   Request({
     required this.requestId,
     required this.senderId,
     required this.senderName,
     required this.receiverId,
+    required this.receiverName, // 2. Add to constructor
     required this.type,
     required this.status,
     required this.message,
     this.proposedTime,
   });
 
-  // --- JSON METHODS ---
   factory Request.fromJson(String id, Map<String, dynamic> json) {
     return Request(
       requestId: id,
-      senderId: json['senderId'],
-      senderName: json['senderName'],
-      receiverId: json['receiverId'],
-      type: json['type'],
-      status: json['status'],
-      message: json['message'],
+      senderId: json['senderId'] ?? '',
+      senderName: json['senderName'] ?? 'Unknown',
+      receiverId: json['receiverId'] ?? '',
+      // 3. Retrieve it (Safety check for old data)
+      receiverName: json['receiverName'] ?? 'Unknown User', 
+      type: json['type'] ?? 'teammate',
+      status: json['status'] ?? 'pending',
+      message: json['message'] ?? '',
       proposedTime: json['proposedTime'],
     );
   }
@@ -41,16 +43,11 @@ class Request {
       'senderId': senderId,
       'senderName': senderName,
       'receiverId': receiverId,
+      'receiverName': receiverName, // 4. Save it
       'type': type,
       'status': status,
       'message': message,
       'proposedTime': proposedTime,
     };
-  }
-
-  // --- OTHER METHODS ---
-  @override
-  String toString() {
-    return 'Request from $senderName (Type: $type, Status: $status)';
   }
 }
