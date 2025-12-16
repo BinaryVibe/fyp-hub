@@ -570,13 +570,11 @@ class PostList extends StatelessWidget {
 
   const PostList({super.key, required this.stream});
 
-  // --- ✨ BEAUTIFUL PROFILE POPUP ✨ ---
   void _showProfilePopup(BuildContext context, String authorId, String authorName) async {
     final userService = UserService();
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary; 
     
-    // Show loading
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -587,14 +585,13 @@ class PostList extends StatelessWidget {
       final user = await userService.getUserProfile(authorId);
       
       if (context.mounted) {
-        Navigator.pop(context); // Close loading
+        Navigator.pop(context); 
         
         if (user == null) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User profile not found.")));
           return;
         }
 
-        // --- THE NEW DESIGN ---
         showDialog(
           context: context,
           builder: (ctx) => Dialog(
@@ -603,12 +600,11 @@ class PostList extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 1. HEADER (Colored Background)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                   decoration: BoxDecoration(
-                    color: primaryColor, // Using app's primary color
+                    color: primaryColor,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: Column(
@@ -649,8 +645,6 @@ class PostList extends StatelessWidget {
                     ],
                   ),
                 ),
-
-                // 2. CONTENT (Bold & Iconified)
                 Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -669,8 +663,6 @@ class PostList extends StatelessWidget {
                     ],
                   ),
                 ),
-
-                // 3. FOOTER
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: TextButton(
@@ -689,13 +681,12 @@ class PostList extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        Navigator.pop(context); // Close loading
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
   }
 
-  // Helper for the new beautiful row
   Widget _buildBeautifulInfoRow(IconData icon, String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -728,7 +719,7 @@ class PostList extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.black87,
                   fontSize: 16,
-                  fontWeight: FontWeight.w900, // ✨ EXTRA BOLD ✨
+                  fontWeight: FontWeight.w900,
                   height: 1.2,
                 ),
               ),
@@ -751,15 +742,35 @@ class PostList extends StatelessWidget {
       return;
     }
 
+    final userService = UserService();
     final projectService = ProjectService();
-    final myProjects = await projectService.getMyProjectsStream(user.uid).first;
 
+    // --- 🛑 CHECK 1: IS USER A SUPERVISOR? ---
+    try {
+      final userProfile = await userService.getUserProfile(user.uid);
+      if (userProfile is Supervisor) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("🚫 Supervisors cannot join student projects."),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    } catch (e) {
+      print("Error fetching profile: $e");
+    }
+    // ----------------------------------------
+
+    // --- 🛑 CHECK 2: ALREADY IN PROJECT? ---
+    final myProjects = await projectService.getMyProjectsStream(user.uid).first;
     if (myProjects.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("⚠️ You are already part of a project!"), backgroundColor: Colors.red),
       );
       return;
     }
+    // ---------------------------------------
 
     final requestService = RequestService();
     final TextEditingController msgController = TextEditingController();
@@ -954,6 +965,7 @@ class SupervisorList extends StatelessWidget {
     final _timeController = TextEditingController();
     final AuthService _auth = AuthService();
     final RequestService _requestService = RequestService();
+    final UserService _userService = UserService(); // Use service for role check
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
     final secondaryColor = theme.colorScheme.secondary;
@@ -1010,13 +1022,29 @@ class SupervisorList extends StatelessWidget {
                       final currentUser = _auth.currentUser;
                       if (currentUser != null) {
                         
-                        // --- 🛑 CHECK: ALREADY IN PROJECT? ---
+                        // --- 🛑 CHECK 1: IS USER A SUPERVISOR? ---
+                        final userProfile = await _userService.getUserProfile(currentUser.uid);
+                        if (userProfile is Supervisor) {
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("🚫 Supervisors cannot request other supervisors."),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                          return;
+                        }
+                        // ----------------------------------------
+
+                        // --- 🛑 CHECK 2: ALREADY IN PROJECT? ---
                         final projectService = ProjectService();
                         final myProjects = await projectService.getMyProjectsStream(currentUser.uid).first;
 
                         if (myProjects.isNotEmpty) {
                           if (context.mounted) {
-                            Navigator.pop(context); // Close sheet
+                            Navigator.pop(context); 
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text("⚠️ You are already in a project! You cannot request a supervisor."),
